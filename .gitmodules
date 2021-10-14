@@ -1,0 +1,9 @@
+[submodule "frr"]
+	path = frr
+	url = ./frr
+[submodule "libcap"]
+	path = libcap
+	url = ./libcap/
+[submodule "libyang"]
+	path = libyang
+	url = ./libyang/
