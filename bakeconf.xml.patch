@@ -1,0 +1,24 @@
+diff --git a/bakeconf.xml b/bakeconf.xml
+index e1e3423..0bfd719 100644
+--- a/bakeconf.xml
++++ b/bakeconf.xml
+@@ -34,6 +34,7 @@
+       <source type="git">
+ 		  <attribute name="url" value="git://github.com/direct-code-execution/ns-3-dce"/>
+         <attribute name="module_directory" value="ns-3-dce"/>
++        <attribute name="revision" value="ecd1a2a16cdb010d23267f13e90d2dd301da9c60"/>
+       </source>
+       <depends_on name="dce-meta-dev" optional="False"/>
+       <depends_on name="net-next-nuse-4.4.0" optional="False"/>
+@@ -316,8 +317,9 @@
+      </module>
+ 
+     <module name="ns-3-dev">
+-      <source type="mercurial">
+-        <attribute name="url" value="http://code.nsnam.org/ns-3-dev"/>
++      <source type="git">
++        <attribute name="url" value="https://github.com/nsnam/ns-3-dev-git"/>
++        <attribute name="revision" value="f920aad547585c0f9bb99e4eb72289f20ae09c46"/> 
+       </source>
+       <depends_on name="netanim" optional="True"/>
+       <depends_on name="pybindgen" optional="True"/>

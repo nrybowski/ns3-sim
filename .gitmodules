@@ -1,0 +1,3 @@
+[submodule "bird"]
+	path = bird
+	url = ./bird/
