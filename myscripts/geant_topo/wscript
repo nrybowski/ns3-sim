@@ -4,7 +4,7 @@ import ns3waf
 import os
 
 def configure(conf):
-    ns3waf.check_modules(conf, ['core', 'internet', 'point-to-point', 'netanim', 'dce-bird'], mandatory = True)
+    ns3waf.check_modules(conf, ['core', 'internet', 'point-to-point', 'netanim'], mandatory = True)
 
 def build(bld):
     bld.build_a_script('dce',

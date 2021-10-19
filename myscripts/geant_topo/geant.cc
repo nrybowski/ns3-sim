@@ -40,7 +40,7 @@ int main (int argc, char *argv[]) {
     //NtfContent ntf("geant.ntf");
 
     // create nodes
-    nodes.Create(2);
+    nodes.Create(3);
     //nodes.Create(ntf.nNodes());
 
   dceManager.SetTaskManagerAttribute( "FiberManagerType", StringValue ( "UcontextFiberManager" ) );
@@ -55,25 +55,29 @@ int main (int argc, char *argv[]) {
 
   pointToPoint.Install(nodes.Get(0), nodes.Get(1));
   //LinuxStackHelper::RunIp (nodes.Get (0), Seconds (0.2), "-6 a add fd00::2/127 dev sim0");
-  //RunIp (nodes.Get (0), Seconds (0.2), "-6 a add fd00::2/127 dev sim0");
-  RunIp (nodes.Get (0), Seconds (0.2), "-6 a add 2001:db8:0:1::1/64 dev sim0");
+  RunIp (nodes.Get (0), Seconds (0.2), "-6 a add fd00::2/127 dev sim0");
+  //RunIp (nodes.Get (0), Seconds (0.2), "-6 a add 2001:db8:0:1::1/64 dev sim0");
   RunIp (nodes.Get (0), Seconds (0.2), "-6 l set sim0 up");
   RunIp (nodes.Get (0), Seconds (0.2), "-6 l set lo up");
-  //RunIp (nodes.Get (1), Seconds (0.4), "-6 a add fd00::3/127 dev sim0");
-  RunIp (nodes.Get (1), Seconds (0.4), "-6 a add 2001:db8:0:1::2/64 dev sim0");
+  RunIp (nodes.Get (1), Seconds (0.4), "-6 a add fd00::3/127 dev sim0");
+  //RunIp (nodes.Get (1), Seconds (0.4), "-6 a add 2001:db8:0:1::2/64 dev sim0");
   RunIp (nodes.Get (1), Seconds (0.4), "-6 l set sim0 up");
   RunIp (nodes.Get (1), Seconds (0.4), "-6 l set lo up");
 
-  RunIp (nodes.Get (1), Seconds (5), "route show table all");
-  RunIp (nodes.Get (0), Seconds (5), "route show table all");
+  RunIp (nodes.Get (1), Seconds (150), "-6 r");
+  RunIp (nodes.Get (0), Seconds (150), "-6 r");
 
-  /*pointToPoint.Install(nodes.Get(1), nodes.Get(2));
+  pointToPoint.Install(nodes.Get(1), nodes.Get(2));
   LinuxStackHelper::RunIp (nodes.Get (2), Seconds (0.2), "link set sim0 up");
-  LinuxStackHelper::RunIp (nodes.Get (2), Seconds (0.2), "a add 192.168.1.1/24 dev sim0");
+  LinuxStackHelper::RunIp (nodes.Get (2), Seconds (0.2), "link set lo up");
+  //LinuxStackHelper::RunIp (nodes.Get (2), Seconds (0.2), "a add 192.168.1.1/24 dev sim0");
+  LinuxStackHelper::RunIp (nodes.Get (2), Seconds (0.2), "-6 a add fd00::4/127 dev sim0");
   LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.4), "link set sim1 up");
-  LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.4), "a add 192.168.1.2/24 dev sim1");
+  LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.4), "link set lo up");
+  //LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.4), "a add 192.168.1.2/24 dev sim1");
+  LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.4), "-6 a add fd00::5/127 dev sim1");
 
-  pointToPoint.Install(nodes.Get(1), nodes.Get(3));
+  /*pointToPoint.Install(nodes.Get(1), nodes.Get(3));
   LinuxStackHelper::RunIp (nodes.Get (3), Seconds (0.2), "link set sim0 up");
   LinuxStackHelper::RunIp (nodes.Get (3), Seconds (0.2), "a add 192.168.2.1/24 dev sim0");
   LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.4), "link set sim2 up");
@@ -104,7 +108,7 @@ int main (int argc, char *argv[]) {
   app.Start (Seconds (2.0));
   app.Stop (Seconds (180));
 
-  /*dce.SetStackSize (1 << 20);
+  dce.SetStackSize (1 << 20);
   dce.SetBinary ("bird");
   dce.ResetArguments ();
   dce.AddArguments("-d");
@@ -112,7 +116,7 @@ int main (int argc, char *argv[]) {
   app.Start (Seconds (1.5));
   app.Stop (Seconds (180));
 
-  dce.SetStackSize (1 << 20);
+  /*dce.SetStackSize (1 << 20);
   dce.SetBinary ("bird");
   dce.ResetArguments ();
   dce.AddArguments("-d");
@@ -120,11 +124,13 @@ int main (int argc, char *argv[]) {
   app.Start (Seconds (2.5));
   app.Stop (Seconds (180));*/
 
+  RunIp (nodes.Get(0), Seconds (130), "l set dev sim0 down");
+
   RunIp (nodes.Get (1), Seconds (120), "-6 r");
   RunIp (nodes.Get (0), Seconds (120), "-6 r");
 
-  RunIp (nodes.Get (1), Seconds (121), "-6 a");
-  RunIp (nodes.Get (0), Seconds (121), "-6 a");
+  //RunIp (nodes.Get (1), Seconds (121), "-6 a");
+  //RunIp (nodes.Get (0), Seconds (121), "-6 a");
 
   pointToPoint.EnablePcapAll("geant", true);
 
