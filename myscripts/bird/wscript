@@ -1,0 +1,39 @@
+## -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+
+import os
+import os.path
+import ns3waf
+import sys
+
+from waflib import Utils, Scripting, Configure, Build, Options, TaskGen, Context, Task, Logs, Errors
+
+def options(opt):
+    opt.tool_options('compiler_cc') 
+    ns3waf.options(opt)
+
+def configure(conf):
+    ns3waf.check_modules(conf, ['core', 'internet', 'point-to-point'], mandatory=True)
+    conf.env.append_value('CXXFLAGS', '-g')
+    conf.env.append_value('LINKFLAGS', '-pthread')
+    conf.check (lib='dl', mandatory = True)
+    conf.env['ENABLE_PYTHON_BINDINGS'] = False
+    conf.env['NS3_ENABLED_MODULES'] = []
+    ns3waf.print_feature_summary(conf)
+
+def build(bld):
+    module_source = [
+	'helper/NtfParser.cc',
+    ]
+
+    module_headers = [
+	'helper/NtfParser.h',
+    ]
+
+    uselib = ns3waf.modules_uselib(bld, ['core', 'internet', 'network', 'point-to-point', 'dce'])
+    module = ns3waf.create_module(bld,
+	name = 'dce-bird',
+	source = module_source,
+	headers = module_headers,
+	use = uselib,
+	lib=['dl'],
+    )
