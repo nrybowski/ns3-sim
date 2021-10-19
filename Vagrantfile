@@ -15,7 +15,7 @@ Vagrant.configure("2") do |config|
   config.vm.box = "generic/ubuntu1604"
   config.vm.synced_folder "bird", "/data/bird", type: "nfs", nfs_udp: "false"
   config.vm.synced_folder "helpers", "/data/helpers", type: "nfs", nfs_udp: "false"
-  config.vm.synced_folder "myscripts", "/home/ns3dce/dce-linux-dev/source/ns-3-dce/myscripts", type: "nfs", nfs_udp: "false"
+  config.vm.synced_folder "myscripts", "/home/ns3dce/dce-linux-dev/source/dce-linux-dev/myscripts", type: "nfs", nfs_udp: "false"
 
   config.vm.provider "libvirt" do |lb|
     lb.memory = "4096"
@@ -30,7 +30,8 @@ Vagrant.configure("2") do |config|
     apt-get update && apt-get install --no-install-recommends -y mercurial libexpat1-dev git-core build-essential bison \
     flex libssl-dev libdb-dev libpcap-dev libc6-dbg libsysfs-dev gawk indent \
     pkg-config autoconf automake sudo ccache libsaxonb-java openjdk-8-jre-headless python-setuptools \
-    bc wget python-pip software-properties-common apt-transport-https ca-certificates && \
+    bc wget python-pip software-properties-common apt-transport-https ca-certificates cmake python3-dev htop \
+    python-pygraphviz python-pygoocanvas g++-multilib qt5-default && \
     rm -rf /var/lib/apt/lists/*
 
     # install g++-4.9
@@ -54,12 +55,18 @@ Vagrant.configure("2") do |config|
     useradd -ms /bin/bash ns3dce && adduser ns3dce sudo && echo -n 'ns3dce:ns3dce' | chpasswd
 
     # Enable passwordless sudo for users under the "sudo" group
-    sed -i.bkp -e \
-      's/%sudo\s\+ALL=(ALL\(:ALL\)\?)\s\+ALL/%sudo ALL=NOPASSWD:ALL/g' \
+    #sed -i.bkp -e \
+    #  's/%sudo\s\+ALL=(ALL\(:ALL\)\?)\s\+ALL/%sudo ALL=NOPASSWD:ALL/g' \
+    #  /etc/sudoers
+    sed -i -e \
+      's/%sudo\s\+ALL=(ALL:ALL)\s\+ALL/%sudo ALL=NOPASSWD:ALL/g' \
       /etc/sudoers
+
 
     pip install --upgrade pip==9.0.3
     pip install setuptools-scm==5.0.2
+
+    chown ns3dce:ns3dce -R /home/ns3dce
 
     su - ns3dce -c "
       cd /home/ns3dce &&\
@@ -79,12 +86,14 @@ Vagrant.configure("2") do |config|
       diff bakeconf.xml bakeconf.xml.test ;\
       git apply --whitespace=warn < bakeconf.xml.patch ;\
       cd .. &&\
-      #./bake/bake.py configure -e dce-linux-dev &&\
-      #./bake/bake.py download &&\
-      #./bake/bake.py build -j $(nproc)
+      ./bake/bake.py configure -e dce-linux-dev &&\
+      ./bake/bake.py download &&\
+      ./bake/bake.py build -j $(nproc) -vvv
     "
+
     sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/g' /etc/sysctl.conf
     sed -i 's/#net.ipv6.conf.forwarding=1/net.ipv6.conf.forwarding=1/g' /etc/sysctl.conf
     sysctl -p
+
   SHELL
 end

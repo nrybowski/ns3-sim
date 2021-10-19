@@ -1,7 +1,7 @@
 #! /bin/bash
 
 FRR_HOME=/data/frr
-DCE_HOME=/home/ns3dce/dce-linux-dev/source/ns-3-dce
+DCE_HOME=/home/ns3dce/dce-linux-dev/source/dce-linux-dev
 CURDIR=$(pwd)
 
 cd "${DCE_HOME}"
@@ -88,30 +88,14 @@ protocol ospf v2 {
 }
 EOF
 
-
-#cp /usr/local/etc/bird.conf files-0/usr/local/etc/
 mkdir -pv files-0/dev/
 ln -s /dev/null files-0/dev/null
-#cp /dev/null files-0/dev/null
-
-install -m 640 -o ns3dce -g frrvty "${FRR_HOME}"/tools/etc/frr/vtysh.conf files-0/etc/frr/vtysh.conf
-install -m 640 -o ns3dce -g ns3dce "${FRR_HOME}"/tools/etc/frr/frr.conf files-0/etc/frr/frr.conf
-install -m 640 -o ns3dce -g ns3dce "${FRR_HOME}"/tools/etc/frr/daemons.conf files-0/etc/frr/daemons.conf
-install -m 640 -o ns3dce -g ns3dce "${FRR_HOME}"/tools/etc/frr/daemons files-0/etc/frr/daemons
-
-#cat > files-0/etc/group <<EOF
-#root:x:0:
-#ns3dce:x:1001:
-#frrvty:x:85:frr,ns3dce
-#frr:x:92:ns3dce
-#EOF
 
 install -m 775 -o ns3dce -g ns3dce -d files-1/var/tmp
 install -m 775 -o ns3dce -g ns3dce -d files-1/var/run/frr
 install -m 775 -o ns3dce -g ns3dce -d files-1/var/log/frr
 install -m 775 -o ns3dce -g ns3dce -d files-1/etc/frr
 mkdir -pv files-1/usr/local/etc
-#cp /usr/local/etc/bird.conf files-1/usr/local/etc/
 cat >> files-1/usr/local/etc/bird.conf <<EOF
 # Configure logging
 log "/var/log/bird.log" { debug, trace, info, remote, warning, error, auth, fatal, bug };
@@ -185,7 +169,6 @@ EOF
 
 mkdir -pv files-1/dev/
 ln -s /dev/null files-1/dev/null
-#cp /dev/null files-1/dev/null
 
 install -m 775 -o ns3dce -g ns3dce -d files-2/var/tmp
 install -m 775 -o ns3dce -g ns3dce -d files-2/var/run/frr
@@ -343,22 +326,11 @@ EOF
 mkdir -pv files-3/dev/
 ln -s /dev/null files-3/dev/null
 
-
-install -m 640 -o ns3dce -g frrvty "${FRR_HOME}"/tools/etc/frr/vtysh.conf files-1/etc/frr/vtysh.conf
-install -m 640 -o ns3dce -g ns3dce "${FRR_HOME}"/tools/etc/frr/frr.conf files-1/etc/frr/frr.conf
-install -m 640 -o ns3dce -g ns3dce "${FRR_HOME}"/tools/etc/frr/daemons.conf files-1/etc/frr/daemons.conf
-install -m 640 -o ns3dce -g ns3dce "${FRR_HOME}"/tools/etc/frr/daemons files-1/etc/frr/daemons
-
-#cat > files-1/etc/group <<EOF
-#root:x:0:
-#ns3dce:x:1001:
-#frrvty:x:85:frr,ns3dce
-#frr:x:92:ns3dce
-#EOF
-
-#export DCE_PATH=/data/frr/zebra/.libs:$DCE_PATH 
-export DCE_PATH=/data/bird:/data/tcpdump:$DCE_PATH 
-export NS_LOG="Bird=level_all"
+export DCE_PATH=/data/bird:$DCE_PATH 
+#export NS_LOG="Bird=level_all:DceFd=level_all:DceUnixFileFd=level_all"
+#export NS_LOG="Bird=level_all:DceFd=level_all:DceLocalSocketFd=level_all"
+#export NS_LOG="Bird=level_all:DceFd=level_all:DcePipeFd=level_all"
+#export NS_LOG="Bird=level_all:DceFd=level_all:DceUnixSocketFd=level_all"
 #export NS_LOG="*=level_all"
 #export DCE_PATH=/home/ns3dce/dce-linux-dev/source/quagga/zebra:$DCE_PATH 
 #sudo -E capsh --caps="cap_net_admin,cap_net_raw,cap_sys_admin+p" -- -c "./waf \
@@ -367,11 +339,9 @@ export NS_LOG="Bird=level_all"
 ./waf --run bird_test \
 	--disable-examples \
 	--disable-tests \
+	#--command-template="strace %s"
 	#--command-template="gdb --args %s" \
 	#--command-template="valgrind --track-origins=yes --leak-check=full %s" \
-	#--command-template="strace %s" \
 	#--command-template="gdb --args %s"
 cat files-*/var/log/*/*
 cd "${CURDIR}"
-
-

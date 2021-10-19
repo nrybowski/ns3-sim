@@ -1,0 +1,322 @@
+diff --git a/conf/conf.c b/conf/conf.c
+index 58abcde1..0fda7b60 100644
+--- a/conf/conf.c
++++ b/conf/conf.c
+@@ -256,6 +256,7 @@ config_do_commit(struct config *c, int type)
+     }
+   else
+     config_free(old_config);
++  log(L_INFO "conf21");
+ 
+   old_config = config;
+   old_cftype = type;
+@@ -270,14 +271,19 @@ config_do_commit(struct config *c, int type)
+ 
+   DBG("filter_commit\n");
+   filter_commit(c, old_config);
++  log(L_INFO "conf22");
+   DBG("sysdep_commit\n");
+   int force_restart = sysdep_commit(c, old_config);
++  log(L_INFO "conf23");
+   DBG("global_commit\n");
+   force_restart |= global_commit(c, old_config);
++  log(L_INFO "conf24");
+   DBG("rt_commit\n");
+   rt_commit(c, old_config);
++  log(L_INFO "conf25");
+   DBG("protos_commit\n");
+   protos_commit(c, old_config, force_restart, type);
++  log(L_INFO "conf26");
+ 
+   int obs = 0;
+   if (old_config)
+@@ -345,6 +351,7 @@ config_commit(struct config *c, int type, uint timeout)
+       config_free(c);
+       return CONF_SHUTDOWN;
+     }
++  log(L_INFO "conf1");
+ 
+   undo_available = 1;
+   if (timeout)
+@@ -352,6 +359,8 @@ config_commit(struct config *c, int type, uint timeout)
+   else
+     tm_stop(config_timer);
+ 
++  log(L_INFO "conf2");
++
+   if (configuring)
+     {
+       if (future_cftype)
+@@ -366,12 +375,15 @@ config_commit(struct config *c, int type, uint timeout)
+       future_config = c;
+       return CONF_QUEUED;
+     }
++  log(L_INFO "conf3");
+ 
+   if (config_do_commit(c, type))
+     {
+       config_done(NULL);
+       return CONF_DONE;
+     }
++
++  log(L_INFO "conf4");
+   return CONF_PROGRESS;
+ }
+ 
+diff --git a/lib/slab.c b/lib/slab.c
+index b0a01ae7..26ffd9b4 100644
+--- a/lib/slab.c
++++ b/lib/slab.c
+@@ -93,7 +93,9 @@ void *
+ sl_allocz(slab *s)
+ {
+   void *obj = sl_alloc(s);
++  log(L_INFO "alloc1");
+   memset(obj, 0, s->size);
++  log(L_INFO "alloc2");
+   return obj;
+ }
+ 
+@@ -232,11 +234,14 @@ void *
+ sl_alloc(slab *s)
+ {
+   struct sl_head *h;
++  log(L_INFO "alloc20");
+ 
+ redo:
+   h = HEAD(s->partial_heads);
++  log(L_INFO "alloc200");
+   if (!h->n.next)
+     goto no_partial;
++  log(L_INFO "alloc21");
+ okay:
+   for (uint i=0; i<s->head_bitfield_len; i++)
+     if (~h->used_bits[i])
+@@ -252,8 +257,10 @@ okay:
+ #ifdef POISON
+       memset(out, 0xcd, s->data_size);
+ #endif
++      log(L_INFO "alloc22");
+       return out;
+     }
++  log(L_INFO "alloc23");
+ 
+   rem_node(&h->n);
+   add_tail(&s->full_heads, &h->n);
+@@ -261,14 +268,20 @@ okay:
+ 
+ no_partial:
+   h = HEAD(s->empty_heads);
++  log(L_INFO "alloc26");
+   if (h->n.next)
+     {
++      log(L_INFO "alloc27");
+       rem_node(&h->n);
++      log(L_INFO "alloc24");
+       add_head(&s->partial_heads, &h->n);
++      log(L_INFO "alloc25");
+       s->num_empty_heads--;
+       goto okay;
+     }
++  log(L_INFO "alloc28");
+   h = alloc_page();
++  log(L_INFO "alloc29");
+   ASSERT_DIE(SL_GET_HEAD(h) == h);
+   memset(h, 0, s->head_size);
+   add_head(&s->partial_heads, &h->n);
+diff --git a/nest/proto.c b/nest/proto.c
+index 31ee1fa1..bf510047 100644
+--- a/nest/proto.c
++++ b/nest/proto.c
+@@ -211,10 +211,13 @@ proto_remove_channel(struct proto *p UNUSED, struct channel *c)
+ static void
+ proto_start_channels(struct proto *p)
+ {
++  log(L_INFO "channel0");
+   struct channel *c;
+   WALK_LIST(c, p->channels)
+-    if (!c->disabled)
++    if (!c->disabled) {
+       channel_set_state(c, CS_UP);
++      log(L_INFO "channel1");
++    }
+ }
+ 
+ static void
+@@ -1323,6 +1326,8 @@ protos_commit(struct config *new, struct config *old, int force_reconfig, int ty
+     }
+   }
+ 
++  log(L_INFO "proto1");
++
+   struct proto *first_dev_proto = NULL;
+ 
+   n = NODE &(proto_list.head);
+@@ -1341,12 +1346,15 @@ protos_commit(struct config *new, struct config *old, int force_reconfig, int ty
+     }
+     else
+       n = NODE nc->proto;
++  
++  log(L_INFO "proto2");
+ 
+   DBG("Protocol start\n");
+ 
+   /* Start device protocol first */
+   if (first_dev_proto)
+     proto_rethink_goal(first_dev_proto);
++  log(L_INFO "proto3");
+ 
+   /* Determine router ID for the first time - it has to be here and not in
+      global_commit() because it is postponed after start of device protocol */
+@@ -1356,6 +1364,7 @@ protos_commit(struct config *new, struct config *old, int force_reconfig, int ty
+     if (!config->router_id)
+       die("Cannot determine router ID, please configure it manually");
+   }
++  log(L_INFO "proto4");
+ 
+   /* Start all new protocols */
+   WALK_LIST_DELSAFE(p, n, proto_list)
+@@ -1384,12 +1393,14 @@ proto_rethink_goal(struct proto *p)
+       return;
+     p = proto_init(nc, n);
+   }
++log(L_INFO "proto21");
+ 
+   /* Determine what state we want to reach */
+   if (p->disabled || p->reconfiguring)
+     goal = PS_DOWN;
+   else
+     goal = PS_UP;
++log(L_INFO "proto22");
+ 
+   q = p->proto;
+   if (goal == PS_UP)
+@@ -1400,7 +1411,9 @@ proto_rethink_goal(struct proto *p)
+       DBG("Kicking %s up\n", p->name);
+       PD(p, "Starting");
+       proto_start(p);
++      log(L_INFO "proto23");
+       proto_notify_state(p, (q->start ? q->start(p) : PS_UP));
++      log(L_INFO "proto24");
+     }
+   }
+   else
+@@ -1878,8 +1891,10 @@ proto_do_up(struct proto *p)
+   if (!p->main_source)
+   {
+     p->main_source = rt_get_source(p, 0);
++    log(L_INFO "up1");
+     rt_lock_source(p->main_source);
+   }
++  log(L_INFO "up");
+ 
+   proto_start_channels(p);
+ }
+@@ -1949,6 +1964,8 @@ proto_notify_state(struct proto *p, uint state)
+   p->proto_state = state;
+   p->last_state_change = current_time();
+ 
++ log(L_INFO "state1 %u", state == PS_UP);
++
+   switch (state)
+   {
+   case PS_START:
+@@ -1966,7 +1983,9 @@ proto_notify_state(struct proto *p, uint state)
+     if (ps == PS_DOWN)
+       proto_do_start(p);
+ 
++    log(L_INFO "state2");
+     proto_do_up(p);
++    log(L_INFO "state3");
+     break;
+ 
+   case PS_STOP:
+diff --git a/nest/rt-attr.c b/nest/rt-attr.c
+index c630aa95..fcabf90f 100644
+--- a/nest/rt-attr.c
++++ b/nest/rt-attr.c
+@@ -131,17 +131,21 @@ struct rte_src *
+ rt_get_source(struct proto *p, u32 id)
+ {
+   struct rte_src *src = rt_find_source(p, id);
++  log(L_INFO "rt1 %u", src!=0);
+ 
+   if (src)
+     return src;
+ 
+   src = sl_allocz(rte_src_slab);
++  log(L_INFO "rt2");
+   src->proto = p;
+   src->private_id = id;
+   src->global_id = idm_alloc(&src_ids);
++  log(L_INFO "rt3");
+   src->uc = 0;
+ 
+   HASH_INSERT2(src_hash, RSH, rta_pool, src);
++  log(L_INFO "rt4");
+ 
+   return src;
+ }
+diff --git a/sysdep/unix/alloc.c b/sysdep/unix/alloc.c
+index c525f713..d8e08271 100644
+--- a/sysdep/unix/alloc.c
++++ b/sysdep/unix/alloc.c
+@@ -12,6 +12,8 @@
+ #include <stdlib.h>
+ #include <unistd.h>
+ 
++//#undef HAVE_MMAP
++
+ #ifdef HAVE_MMAP
+ #include <sys/mman.h>
+ #endif
+diff --git a/sysdep/unix/log.c b/sysdep/unix/log.c
+index 14d18c01..01762164 100644
+--- a/sysdep/unix/log.c
++++ b/sysdep/unix/log.c
+@@ -35,7 +35,6 @@ static FILE *dbgf;
+ static list *current_log_list;
+ static char *current_syslog_name; /* NULL -> syslog closed */
+ 
+-
+ #ifdef USE_PTHREADS
+ 
+ #include <pthread.h>
+@@ -384,6 +383,7 @@ log_switch(int initial, list *logs, const char *new_syslog_name)
+ 
+   /* We should not manipulate with log list when other threads may use it */
+   log_lock();
++  //log(L_INFO "log1");
+ 
+   if (!logs || EMPTY_LIST(*logs))
+     logs = default_log_list(initial, &new_syslog_name);
+diff --git a/sysdep/unix/main.c b/sysdep/unix/main.c
+index 392aff9d..c2e3a64e 100644
+--- a/sysdep/unix/main.c
++++ b/sysdep/unix/main.c
+@@ -920,15 +920,25 @@ main(int argc, char **argv)
+       dup2(0, 2);
+     }
+ 
++  log(L_INFO "here");
++
+   main_thread_init();
++  
++  log(L_INFO "here2");
+ 
+   write_pid_file();
++  
++  log(L_INFO "here3");
+ 
+   signal_init();
+ 
++  log(L_INFO "here4");
++
+   config_commit(conf, RECONFIG_HARD, 0);
++  log(L_INFO "here5");
+ 
+   graceful_restart_init();
++  log(L_INFO "here6");
+ 
+ #ifdef LOCAL_DEBUG
+   async_dump_flag = 1;

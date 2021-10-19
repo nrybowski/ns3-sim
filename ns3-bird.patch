@@ -1,0 +1,60 @@
+diff --git a/model/dce-fd.cc b/model/dce-fd.cc
+index 708ef69..a24276e 100644
+--- a/model/dce-fd.cc
++++ b/model/dce-fd.cc
+@@ -633,6 +633,8 @@ void * dce_mmap64 (void *start, size_t length, int prot, int flags,
+   Thread *current = Current ();
+   NS_LOG_FUNCTION (current << UtilsGetNodeId () << start << length << prot << flags << fd << offset);
+   NS_ASSERT (current != 0);
++  if (fd == -1 && flags == MAP_ANONYMOUS | MAP_PRIVATE)
++    return ::mmap(start, length, prot, flags, fd, offset);
+ 
+   OPENED_FD_METHOD_ERR (MAP_FAILED, void *, Mmap (start, length, prot, flags, offset))
+ }
+diff --git a/model/libc-ns3.h b/model/libc-ns3.h
+index 3294921..8684b71 100644
+--- a/model/libc-ns3.h
++++ b/model/libc-ns3.h
+@@ -73,6 +73,8 @@ DCE (jrand48)
+ DCE (srand48)
+ DCE (seed48)
+ DCE (lcong48)
++NATIVE(localtime_r)
++NATIVE(ffs)
+ NATIVE (drand48_r)
+ NATIVE (erand48_r)
+ NATIVE (lrand48_r)
+diff --git a/model/utils.h b/model/utils.h
+index 3f0696d..9c67072 100644
+--- a/model/utils.h
++++ b/model/utils.h
+@@ -74,17 +74,21 @@ std::string UtilsGenerateIfNameFromIndex(uint32_t i);
+ 
+ #define OPENED_FD_METHOD_ERR(errCode, rettype, args) \
+   std::map < int,FileUsage * > ::iterator it = current->process->openFiles.find (fd); \
++  NS_LOG_FUNCTION("here"); \
+   if (current->process->openFiles.end () == it) \
+     { \
+       current->err = EBADF; \
++      NS_LOG_FUNCTION("fail"); \
+       return (rettype) errCode; \
+     } \
++  NS_LOG_FUNCTION("here"); \
+   FileUsage *fu = it->second; \
+   if (fu->IsClosed ()) \
+     { \
+       current->err = EBADF; \
+       return (rettype) errCode; \
+     } \
++  NS_LOG_FUNCTION("here"); \
+   UnixFd *unixFd =  fu->GetFileInc (); \
+   rettype retval = unixFd->args; \
+   if (fu && fu->DecUsage ()) \
+@@ -93,6 +97,7 @@ std::string UtilsGenerateIfNameFromIndex(uint32_t i);
+       delete fu; \
+       fu = 0; \
+     } \
++  NS_LOG_FUNCTION("here"); \
+ \
+   return retval;
+ 
