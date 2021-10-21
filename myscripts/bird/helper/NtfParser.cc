@@ -3,6 +3,12 @@
 const string NtfContent::delimiter = " ";
 const string NtfContent::comment_tag = "#";
 
+int NtfContent::getNodeId(string node) {
+    map<string, unsigned int>::iterator it = nodes.find(node);
+    if (it == nodes.end()) return -1;
+    return (int) it->second;
+}
+
 size_t NtfContent::nNodes() {
     return nodes.size();
 }
@@ -11,8 +17,16 @@ const vector<Link>::iterator NtfContent::getLinks() {
     return links.begin();
 }
 
+const vector<Link>::iterator NtfContent::getLastLink() {
+    return links.end();
+}
+
 const map<string, unsigned int>::iterator NtfContent::getNodes() {
     return nodes.begin();
+}
+
+const map<string, unsigned int>::iterator NtfContent::getLastNode() {
+    return nodes.end();
 }
 
 void NtfContent::dumpNodes() {
@@ -38,58 +52,70 @@ NtfContent::NtfContent(string filename) {
     
     // Parse NFT file line by line
     string line, token;
+    map<tuple<string, string>, Link> links2;
     while (getline(ntf, line)) {
 
 	// Skip comments
 	if (line.substr(0,1) == comment_tag) continue;
 
+	// Put 4 first line elements in vector
 	size_t pos, count = 0;
-	int token2int;
-	Link link;
-
+	vector<string> parsed_line;
 	while ((pos = line.find(delimiter))) {
 	    token = line.substr(0, pos);
+	    parsed_line.push_back(token);
 	    line.erase(0, pos + delimiter.length());
 
-	    switch (count) {
-		case 0:
-		    link.origin = token;
-		    if (nodes.find(token) == nodes.end())
-			nodes.insert(pair<string, unsigned int>(token, nodes.size()));
-		    break;
-		case 1:
-		    link.end = token;
-		    break;
-		case 2:
-		    token2int = mycast(token);
-		    if (token2int == -1) {
-			cout << "invalid metric" << endl;
-			exit(1);
-		    }
-		    link.metric = token2int;
-		    break;
-		case 3:
-		    token2int = mycast(token);
-		    if (token2int == -1) {
-			cout << "invalid delay" << endl;
-			exit(1);
-		    }
-		    link.delay = token2int;
-		    break;	
-		default:
-		    {};
-	    }
-	    
 	    // EOL or we parsed the 4 elements we are looking for
 	    // (ignore remaining elements)
 	    if (pos == string::npos || ++count >= 4) break;
 	}
-	links.push_back(link);
+
+	string origin = parsed_line.at(0), end = parsed_line.at(1);
+	int metric = mycast(parsed_line.at(2)), delay = mycast(parsed_line.at(3));
+
+	tuple<string, string> forward_key = make_tuple(origin, end), reverse_key = make_tuple(end, origin);
+	auto forward = links2.find(forward_key), reverse = links2.find(reverse_key);
+
+	// Link logic
+	if (forward == links2.end()) {
+	    if (reverse == links2.end()) {
+		// link does not exist, insert forward
+		links2.insert(
+			pair<tuple<string, string>, Link>(
+			    forward_key,
+			    Link(get<0>(forward_key), get<1>(forward_key), metric, delay)
+			)
+		);
+		nodes.insert(pair<string, int>(origin, nodes.size()));
+		nodes.insert(pair<string, int>(end, nodes.size()));
+	    } else {
+		// current link is reverse direction of a known forward
+		Link l = reverse->second;
+		if (delay != l.delay) {
+		    // delay not the same in both directions, its a new link
+		    cerr << "not supported" << endl;
+		    exit(1);
+		} else {
+		    // delays are the same in both direction, we consider them as the same link
+		    l.r_metric = metric;
+		    links2.erase(reverse);
+		    links2.insert(pair<tuple<string, string>, Link>(reverse_key, l)); 
+		}
+	    }
+	}
+    }
+    /*cout << links2.size() << endl;
+    for (map<tuple<string, string>, Link>::iterator it = links2.begin(); it != links2.end(); it++) {
+	cout << it->second << endl;
+    }*/
+    for (auto it = links2.begin(); it != links2.end(); it++) {
+	links.push_back(it->second);
     }
 }
 
 int main(void) {
     NtfContent ntf("geant.ntf");
-    //ntf.dumpLinks();
+    ntf.dumpLinks();
     ntf.dumpNodes();
 }

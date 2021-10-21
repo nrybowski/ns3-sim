@@ -11,130 +11,114 @@
 
 #include "ns3/NtfParser.h"
 
+#include "ns3/netanim-module.h"
+
 using namespace std;
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("GEANT");
 
-static void RunIp (Ptr<Node> node, Time at, std::string str)
-{
-  DceApplicationHelper process;
-  ApplicationContainer apps;
-  process.SetBinary ("ip");
-  process.SetStackSize (1 << 16);
-  process.ResetArguments ();
-  process.ParseArguments (str.c_str ());
-  apps = process.Install (node);
-  apps.Start (at);
+static unsigned int a = 1; // unique addr counter
+
+void ConfigureIface(Ptr<Node> node, unsigned int id) {
+    LinuxStackHelper::RunIp (node, Seconds (0.2), "a add 10.0.0." + to_string(node->GetId()+id+a) + "/24 dev sim" + to_string(id));
+    LinuxStackHelper::RunIp (node, Seconds (0.2), "l set dev sim" + to_string(id) + " up");
+    a++;
+}
+
+unsigned int FindIface(map<string, unsigned int> *nifaces, string id) {
+    auto oiface = nifaces->find(id);
+    if (oiface == nifaces->end()) {
+	nifaces->insert(pair<string, unsigned int>(id, 0));
+	return 0;
+    }
+    nifaces->erase(id);
+    nifaces->insert(pair<string, unsigned int>(id, oiface->second+1));
+    return oiface->second;
 }
 
 int main (int argc, char *argv[]) {
-
     NodeContainer nodes;
     PointToPointHelper pointToPoint;
-    //LinuxStackHelper stack;
-    //Ipv6DceRoutingHelper ipv6RoutingHelper;
     DceManagerHelper dceManager;
-    //NetDeviceContainer devices;
-    
-    //NtfContent ntf("geant.ntf");
+    dceManager.SetTaskManagerAttribute( "FiberManagerType", StringValue ( "UcontextFiberManager" ) );
+    dceManager.SetNetworkStack ("ns3::LinuxSocketFdFactory", "Library", StringValue ("liblinux.so"));
 
-    // create nodes
-    nodes.Create(3);
-    //nodes.Create(ntf.nNodes());
+    NtfContent ntf("geant.ntf");
+    NS_LOG_FUNCTION(ntf.nNodes());
+    nodes.Create(ntf.nNodes());
+    dceManager.Install (nodes);
 
-  dceManager.SetTaskManagerAttribute( "FiberManagerType", StringValue ( "UcontextFiberManager" ) );
-  dceManager.SetNetworkStack ("ns3::LinuxSocketFdFactory", "Library", StringValue ("liblinux.so"));
-  //stack.SetRoutingHelper(ipv6RoutingHelper);
-  //stack.Install(nodes);
-  dceManager.Install (nodes);
+    map<string, unsigned int> nifaces; // number of iface per node
 
-  // set p2p link attributes
-  pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
-  pointToPoint.SetChannelAttribute ("Delay", StringValue ("1ms"));
+    // Create the topology
+    for (vector<Link>::iterator links = ntf.getLinks(); links != ntf.getLastLink(); links++) {
+	Link l = *links;
+	int n1_id = ntf.getNodeId(l.origin), n2_id = ntf.getNodeId(l.end);
+	Ptr<Node> n1 = nodes.Get(n1_id), n2 = nodes.Get(n2_id);
+	pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
+	pointToPoint.SetChannelAttribute ("Delay", StringValue (to_string(l.delay) + "ms"));
+	pointToPoint.Install(n1, n2);
 
-  pointToPoint.Install(nodes.Get(0), nodes.Get(1));
-  //LinuxStackHelper::RunIp (nodes.Get (0), Seconds (0.2), "-6 a add fd00::2/127 dev sim0");
-  RunIp (nodes.Get (0), Seconds (0.2), "-6 a add fd00::2/127 dev sim0");
-  //RunIp (nodes.Get (0), Seconds (0.2), "-6 a add 2001:db8:0:1::1/64 dev sim0");
-  RunIp (nodes.Get (0), Seconds (0.2), "-6 l set sim0 up");
-  RunIp (nodes.Get (0), Seconds (0.2), "-6 l set lo up");
-  RunIp (nodes.Get (1), Seconds (0.4), "-6 a add fd00::3/127 dev sim0");
-  //RunIp (nodes.Get (1), Seconds (0.4), "-6 a add 2001:db8:0:1::2/64 dev sim0");
-  RunIp (nodes.Get (1), Seconds (0.4), "-6 l set sim0 up");
-  RunIp (nodes.Get (1), Seconds (0.4), "-6 l set lo up");
+	ConfigureIface(n1, FindIface(&nifaces, l.origin));
+	ConfigureIface(n2, FindIface(&nifaces, l.end));
+    }
+#include "ns3/netanim-module.h"
+    DceApplicationHelper dce;
+    ApplicationContainer app;
 
-  RunIp (nodes.Get (1), Seconds (150), "-6 r");
-  RunIp (nodes.Get (0), Seconds (150), "-6 r");
+    // Here, all the ifaces of each node is configured
+    // We need to generate the bird config
+    for (auto node = ntf.getNodes(); node != ntf.getLastNode(); node++) {
+	string node_name = node->first;
+	int node_id = node->second;
+	unsigned int nif = nifaces.find(node_name)->second;
 
-  pointToPoint.Install(nodes.Get(1), nodes.Get(2));
-  LinuxStackHelper::RunIp (nodes.Get (2), Seconds (0.2), "link set sim0 up");
-  LinuxStackHelper::RunIp (nodes.Get (2), Seconds (0.2), "link set lo up");
-  //LinuxStackHelper::RunIp (nodes.Get (2), Seconds (0.2), "a add 192.168.1.1/24 dev sim0");
-  LinuxStackHelper::RunIp (nodes.Get (2), Seconds (0.2), "-6 a add fd00::4/127 dev sim0");
-  LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.4), "link set sim1 up");
-  LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.4), "link set lo up");
-  //LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.4), "a add 192.168.1.2/24 dev sim1");
-  LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.4), "-6 a add fd00::5/127 dev sim1");
+	string conf_dir = "files-" + to_string(node_id) + "/etc";
+	mkdir(conf_dir.c_str(), S_IRWXU | S_IRWXG);
 
-  /*pointToPoint.Install(nodes.Get(1), nodes.Get(3));
-  LinuxStackHelper::RunIp (nodes.Get (3), Seconds (0.2), "link set sim0 up");
-  LinuxStackHelper::RunIp (nodes.Get (3), Seconds (0.2), "a add 192.168.2.1/24 dev sim0");
-  LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.4), "link set sim2 up");
-  LinuxStackHelper::RunIp (nodes.Get (1), Seconds (0.4), "a add 192.168.2.2/24 dev sim2");
+	ofstream config(conf_dir + "/bird.conf");
+	config << "log \"/var/log/bird.log\" all;" << endl;
+	config << "router id " << node_id+1 << ";" <<endl;
+	config << "protocol device {}" << endl;
+	config << "protocol direct {\n\tdisabled;\n\tipv4;\n\tipv6;\n}" <<endl;
+	config << "protocol kernel {\n\tipv4 {\n\t\texport all;\n\t};\n}" << endl;
+	config << "protocol static {\n\tipv4;\n}" <<endl;
+	config << "protocol ospf v2 {\n\tarea 0 {" <<endl;
+	for (unsigned int i=0; i<=nif; i++) {
+	    config << "\t\tinterface \"sim" << i <<"\" {" << endl;
+	    //config << "\t\t\ttype broadcast;" <<endl;
+	    config << "\t\t\ttype ptp;" <<endl;
+	    config << "\t\t\tcost " << 10 << ";" <<endl;
+	    config << "\t\t\thello 5;\n\t\t};" <<endl;
+	}
+	config << "\t};\n}" << endl;
+	config.close();
 
-  pointToPoint.Install(nodes.Get(3), nodes.Get(2));
-  LinuxStackHelper::RunIp (nodes.Get (3), Seconds (0.2), "link set sim1 up");
-  LinuxStackHelper::RunIp (nodes.Get (3), Seconds (0.2), "a add 10.1.2.2/24 dev sim1");
-  LinuxStackHelper::RunIp (nodes.Get (2), Seconds (0.2), "link set sim1 up");
-  LinuxStackHelper::RunIp (nodes.Get (2), Seconds (0.2), "a add 10.1.2.1/24 dev sim1");*/
+	LinuxStackHelper::RunIp (nodes.Get(node_id), Seconds (0.2), "l set dev lo up");
 
-  DceApplicationHelper dce;
-  ApplicationContainer app;
+	dce.SetStackSize (1 << 20);
+	dce.SetBinary ("bird");
+	dce.ResetArguments ();
+	dce.ParseArguments("-d -c /etc/bird.conf");
+	app = dce.Install (nodes.Get(node_id));
+	app.Start (Seconds (0.5*node_id));
+	//app.Stop (Seconds (3540));
+    }
 
-  dce.SetStackSize (1 << 20);
-  dce.SetBinary ("bird");
-  dce.ResetArguments ();
-  dce.AddArguments("-d");
-  app = dce.Install (nodes.Get(0));
-  app.Start (Seconds (1.0));
-  app.Stop (Seconds (180));
-      
-  dce.SetStackSize (1 << 20);
-  dce.SetBinary ("bird");
-  dce.ResetArguments ();
-  dce.AddArguments("-d");
-  app = dce.Install (nodes.Get(1));
-  app.Start (Seconds (2.0));
-  app.Stop (Seconds (180));
+    // TODO: put callback for failure scenario
 
-  dce.SetStackSize (1 << 20);
-  dce.SetBinary ("bird");
-  dce.ResetArguments ();
-  dce.AddArguments("-d");
-  app = dce.Install (nodes.Get(2));
-  app.Start (Seconds (1.5));
-  app.Stop (Seconds (180));
-
-  /*dce.SetStackSize (1 << 20);
-  dce.SetBinary ("bird");
-  dce.ResetArguments ();
-  dce.AddArguments("-d");
-  app = dce.Install (nodes.Get(3));
-  app.Start (Seconds (2.5));
-  app.Stop (Seconds (180));*/
-
-  RunIp (nodes.Get(0), Seconds (130), "l set dev sim0 down");
-
+  /*RunIp (nodes.Get(0), Seconds (130), "l set dev sim0 down");
   RunIp (nodes.Get (1), Seconds (120), "-6 r");
-  RunIp (nodes.Get (0), Seconds (120), "-6 r");
+  RunIp (nodes.Get (0), Seconds (120), "-6 r");*/
 
   //RunIp (nodes.Get (1), Seconds (121), "-6 a");
-  //RunIp (nodes.Get (0), Seconds (121), "-6 a");
+  //RunIp (nodes.Get (0), Seconds (121), "-6 a");*/
 
+    AnimationInterface anim ("geant-anim.xml");
   pointToPoint.EnablePcapAll("geant", true);
 
-  Simulator::Stop (Seconds (200));
+  Simulator::Stop (Seconds (180));
   Simulator::Run ();
   Simulator::Destroy ();
 

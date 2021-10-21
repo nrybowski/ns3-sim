@@ -18,14 +18,24 @@ class Link {
     public:
 	string origin;
 	string end;
-	int metric;
 	int delay;
+	int f_metric;
+	int r_metric;
+	Link(string o, string e, int m, int d) {
+	    origin = o;
+	    end = e;
+	    delay = d;
+	    f_metric = m;
+	    r_metric = 0;
+	}
 	
 	friend ostream& operator<<(ostream& os, const Link &l) {
-	    os << "Origin: " << l.origin 
-		<< "\nEnd: " << l.end 
-		<< "\nMetric: " << l.metric 
-		<< "\nDelay: " << l.delay 
+	    os << "origin <" << l.origin 
+		<< "> end <" << l.end 
+		<< "> | delay <" << l.delay
+		<< "> | f_metric <" << l.f_metric 
+		<< "> r_metric <" << l.r_metric
+		<< ">"
 		<< endl;
 	    return os;
 	}
@@ -41,8 +51,11 @@ class NtfContent {
     public:
 	NtfContent(string filename);
 	const vector<Link>::iterator getLinks();
+	const vector<Link>::iterator getLastLink();
+	const map<string, unsigned int>::iterator getLastNode();
 	const map<string, unsigned int>::iterator getNodes();
 	void dumpNodes();
 	void dumpLinks();
 	size_t nNodes();
+	int getNodeId(string node);
 };
