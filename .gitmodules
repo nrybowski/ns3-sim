@@ -1,3 +1,6 @@
 [submodule "bird"]
 	path = bird
 	url = ./bird/
+[submodule "netanim"]
+	path = netanim
+	url = ./netanim/
