@@ -13,6 +13,7 @@ Vagrant.configure("2") do |config|
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://vagrantcloud.com/search.
   config.vm.box = "generic/ubuntu1604"
+  config.vm.synced_folder "output", "/data/output", type: "nfs", nfs_udp: "false"
   config.vm.synced_folder "bird", "/data/bird", type: "nfs", nfs_udp: "false"
   config.vm.synced_folder "helpers", "/data/helpers", type: "nfs", nfs_udp: "false"
   config.vm.synced_folder "myscripts", "/home/ns3dce/dce-linux-dev/source/dce-linux-dev/myscripts", type: "nfs", nfs_udp: "false"
