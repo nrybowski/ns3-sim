@@ -10,6 +10,6 @@ def build(bld):
     bld.build_a_script('dce',
     	needed = ['core', 'internet', 'dce', 'point-to-point', 'netanim', 'dce-bird'],
 	target='bin/dce-bird-geant',
-	source=['geant.cc', 'blackhole-error-model.cc'],
+	source=['geant.cc'],
     )
 

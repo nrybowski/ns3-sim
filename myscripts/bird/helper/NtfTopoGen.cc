@@ -13,8 +13,8 @@ TopoHelper::TopoHelper(string ntf_file, bool check) {
     this->ntf_file = ntf_file;
     this->check = check;
 
+    // unsecure if file do not exist ? TODO: refactor
     ntf = new NtfContent(ntf_file);
-    //ntf.reset(new NtfContent(ntf_file));
     
     // unsecure. TODO: refactor
     filename = ntf_file.substr(0, ntf_file.find("."));
@@ -33,7 +33,7 @@ TopoHelper::TopoHelper(string ntf_file, bool check) {
 }
 
 TopoHelper::~TopoHelper() {
-    NS_LOG_FUNCTION("called");
+    //NS_LOG_FUNCTION("called");
     delete ntf;
 }
 
@@ -95,9 +95,6 @@ void TopoHelper::MakeLinkFail(uint32_t src_id, uint32_t dst_id, uint32_t delay_v
 void TopoHelper::TopoGen(void) {
 
     NS_LOG_FUNCTION("Generating topology defined in <" + ntf_file + ">");
-
-    // unsecure
-    //NtfContent a(ntf_file), *ntf = &a;
 
     if (check)
 	// Dump the mapping of node's names and node's ids
@@ -203,7 +200,7 @@ void TopoHelper::ConfigureBird(void) {
     }
 
     if (check) {
-	NS_LOG_FUNCTION("check");
+	NS_LOG_FUNCTION("Verifying generated topology");
 
 	ofstream out(filename + ".check");
 
@@ -229,11 +226,18 @@ void TopoHelper::ConfigureBird(void) {
 	    }
 	}
 	out.close();
+
+	int ret = system("python3 test.py");
+	NS_ABORT_MSG_IF(!WIFEXITED(ret), "Some error occured during topology tests. Abort.");
+	NS_ABORT_MSG_IF(WEXITSTATUS(ret) != 0, "Invalid generated topo! Abort.");
+	NS_LOG_FUNCTION("Topology verified.");
     }
 }
 
 void TopoHelper::Run(uint32_t runtime) {
     p2p.EnablePcapAll(filename, true);
+
+
     MakeLinkFail(0, 1, 9, Seconds(120));
 
     //auto ret = FindLinks(&nodes, 0, 1, 9, Seconds(120));
@@ -244,8 +248,8 @@ void TopoHelper::Run(uint32_t runtime) {
     //nodes.Get(0)->GetDevice(0)->SetReceiveCallback(MakeCallback(&LsaProcessDelay));
 
     Simulator::Stop (Seconds (runtime));
+    NS_LOG_FUNCTION("Starting simulation.");
     Simulator::Run ();
-    NS_LOG_FUNCTION("1");
     Simulator::Destroy ();
-    NS_LOG_FUNCTION("2");
+    NS_LOG_FUNCTION("Simulation ended.");
 }
