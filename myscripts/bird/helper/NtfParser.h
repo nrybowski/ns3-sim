@@ -55,6 +55,7 @@ class NtfContent {
 	const map<string, unsigned int>::iterator getLastNode();
 	const map<string, unsigned int>::iterator getNodes();
 	void dumpNodes();
+	void dumpNodes(string filename);
 	void dumpLinks();
 	size_t nNodes();
 	int getNodeId(string node);

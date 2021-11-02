@@ -35,6 +35,14 @@ void NtfContent::dumpNodes() {
     }
 }
 
+void NtfContent::dumpNodes(string filename) {
+    ofstream out(filename.c_str());
+    for (map<string, unsigned int>::iterator it = nodes.begin(); it != nodes.end(); it++) {
+	out << it->second << " " << it->first << endl;
+    }
+    out.close();
+}
+
 void NtfContent::dumpLinks() {
     for (vector<Link>::iterator it = links.begin(); it != links.end(); it++) {
 	cout << *it << endl;
