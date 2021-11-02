@@ -23,10 +23,14 @@ def configure(conf):
 def build(bld):
     module_source = [
 	'helper/NtfParser.cc',
+	'helper/NtfTopoGen.cc',
+	'helper/blackhole-error-model.cc',
     ]
 
     module_headers = [
 	'helper/NtfParser.h',
+	'helper/NtfTopoGen.h',
+	'helper/blackhole-error-model.h',
     ]
 
     uselib = ns3waf.modules_uselib(bld, ['core', 'internet', 'network', 'point-to-point', 'dce'])
