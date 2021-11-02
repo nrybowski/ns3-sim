@@ -14,7 +14,7 @@ vagrant ssh -c '
 	export DCE_PATH=\"/data/bird:${DCE_PATH}\" &&\
 	CURDIR=\"${PWD}\" &&\
 	cd /home/ns3dce/dce-linux-dev/source/dce-linux-dev &&\
-	./waf --run dce-bird-geant --command-template \"%s --ntf=geant.ntf --check=true --runtime=180\" &&\
+	./waf --run dce-ntf-bird --command-template \"%s --ntf=geant.ntf --check=true --runtime=180\" &&\
 	if [[ ! -d /data/output/traces ]]; then mkdir /data/output/traces; fi &&\
 	mv -f *.pcap geant.map /data/output/traces > /dev/null 2>&1 &&\
 	if [[ ! -d /data/output/files ]]; then mkdir /data/output/files; else rm -rf /data/output/files/*; fi &&\

@@ -35,9 +35,15 @@ def build(bld):
 
     uselib = ns3waf.modules_uselib(bld, ['core', 'internet', 'network', 'point-to-point', 'dce'])
     module = ns3waf.create_module(bld,
-	name = 'dce-bird',
+	name = 'dce-ntf',
 	source = module_source,
 	headers = module_headers,
 	use = uselib,
 	lib=['dl'],
+    )
+
+    bld.build_a_script('dce',
+    	needed = ['core', 'internet', 'dce', 'point-to-point', 'netanim', 'dce-ntf'],
+	target='bin/dce-ntf-bird',
+	source=['ntf.cc'],
     )
