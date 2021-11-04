@@ -1,5 +1,8 @@
 #! /usr/bin/python3
 
+import os
+import sys 
+
 def get_metric(node_id, iface_id):
     with open('files-%s/etc/bird.conf' % node_id) as fd:
         config = fd.read()
@@ -23,19 +26,20 @@ def nodemap(filename: str) -> dict:
         ret[node_id] = name
     return ret
 
+# check => map => ntf
 if __name__ == '__main__':
-    with open('geant.check', 'r') as fd:
+    with open(sys.argv[1], 'r') as fd:
         raw = fd.read()
     csv = raw.split('\n')[:-1]
 
-    nodes = nodemap("geant.map")
+    nodes = nodemap(sys.argv[2])
     
     generated_topo = []
     for line in csv:
         n1, i1, n2, i2, delay = line.split(',')
         generated_topo.append('%s %s %s %s' % (nodes[n1], nodes[n2], get_metric(n1, i1), delay))
 
-    with open('geant.ntf', 'r') as fd:
+    with open(sys.argv[3], 'r') as fd:
         ntf = fd.read()
     for line in ntf.split('\n')[:-1]:
         if line[0] == '#':

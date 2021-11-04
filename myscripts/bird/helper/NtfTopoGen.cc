@@ -2,10 +2,22 @@
 
 NS_LOG_COMPONENT_DEFINE("NtfTopoHelper");
 
-void LinkFailure(Ptr<PointToPointNetDevice> src, Ptr<PointToPointNetDevice> dst) {
+void LinkFailure(Ptr<PointToPointNetDevice> src, Ptr<PointToPointNetDevice> dst, uint32_t end) {
     Ptr<BlackholeErrorModel> em = CreateObject<BlackholeErrorModel>();
+    if (end != 0) {
+	//NS_LOG_FUNCTION(Seconds(end));
+	//Simulator::Schedule(Seconds(end), MakeEvent(BlackholeErrorModel::Disable, em));
+	Simulator::Schedule(Seconds(end), &Disable, em, Seconds(end), 1);
+    }
     src->SetReceiveErrorModel(PointerValue(em));
     dst->SetReceiveErrorModel(PointerValue(em));
+}
+
+void LinkFailure(Ptr<PointToPointNetDevice> src, Ptr<PointToPointNetDevice> dst) {
+    /*Ptr<BlackholeErrorModel> em = CreateObject<BlackholeErrorModel>();
+    src->SetReceiveErrorModel(PointerValue(em));
+    dst->SetReceiveErrorModel(PointerValue(em));*/
+    LinkFailure(src, dst, 0);
 }
 
 TopoHelper::TopoHelper(string ntf_file, bool check) {
@@ -60,7 +72,11 @@ void TopoHelper::ConfigureIface(Ptr<Node> node, unsigned int id) {
  *
  * @return A vector containing pairs of PointToPointNetDevice matching the parameters.
  */
-vector<pair<Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>>> TopoHelper::LinkCallback(uint32_t src_id, uint32_t dst_id, uint32_t delay_value, Time callback_delay, void (*callback)(Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>)) {
+vector<pair<Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>>> TopoHelper::LinkCallback(uint32_t src_id,
+	uint32_t dst_id, uint32_t delay_value, void (*callback)(Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>, uint32_t),
+	uint32_t callback_delay, uint32_t callback_duration) {
+
+
     Ptr<Node> src_node = nodes.Get(src_id);
 
     Ptr<NetDevice> src_nd, dst_nd;
@@ -82,14 +98,21 @@ vector<pair<Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>>> TopoHelper:
 	dst_p2p = DynamicCast<PointToPointNetDevice>(dst_nd);
 	ret.push_back(pair<Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>>(src_p2p, dst_p2p));
 	//Simulator::Schedule(callback_delay, callback, src_p2p, dst_p2p);
-	Simulator::Schedule(callback_delay, MakeEvent(callback, src_p2p, dst_p2p));
+	//uint32_t end = callback_duration == 0 ? 0 : callback_duration + callback_delay;
+	Simulator::Schedule(Seconds(callback_delay), MakeEvent(callback, src_p2p, dst_p2p, callback_duration));
     }
 
     return ret;
 }
 
-void TopoHelper::MakeLinkFail(uint32_t src_id, uint32_t dst_id, uint32_t delay_value, Time delay) {
-    LinkCallback(src_id, dst_id, delay_value, delay, LinkFailure);
+/*void TopoHelper::MakeLinkFail(uint32_t src_id, uint32_t dst_id, uint32_t delay_value, uint32_t delay) {
+    //LinkCallback(src_id, dst_id, delay_value, delay, LinkFailure);
+    LinkCallback(src_id, dst_id, delay_value, LinkFailure, delay);
+}*/
+
+void TopoHelper::MakeLinkFail(uint32_t src_id, uint32_t dst_id, uint32_t delay_value, uint32_t delay, uint32_t duration) {
+    NS_LOG_FUNCTION("Scheduling link (" << src_id << "->" << dst_id << ") failure at " << delay);
+    LinkCallback(src_id, dst_id, delay_value, LinkFailure, delay, duration);
 }
 
 void TopoHelper::TopoGen(void) {
@@ -202,7 +225,8 @@ void TopoHelper::ConfigureBird(void) {
     if (check) {
 	NS_LOG_FUNCTION("Verifying generated topology");
 
-	ofstream out(filename + ".check");
+	string out_file = filename + ".check";
+	ofstream out(out_file);
 
 	Ptr<NetDevice> nd0, nd1;
 	Ptr<PointToPointNetDevice> p2p_nd0;
@@ -227,26 +251,24 @@ void TopoHelper::ConfigureBird(void) {
 	}
 	out.close();
 
-	int ret = system("python3 test.py");
+	string cmd = "python3 test.py " + out_file + " " + filename + ".map " + ntf_file;
+	int ret = system(cmd.c_str());
 	NS_ABORT_MSG_IF(!WIFEXITED(ret), "Some error occured during topology tests. Abort.");
 	NS_ABORT_MSG_IF(WEXITSTATUS(ret) != 0, "Invalid generated topo! Abort.");
 	NS_LOG_FUNCTION("Topology verified.");
     }
 }
 
+void TopoHelper::ScheduleFailures(string fail_path) {
+    NtfContent failures(fail_path);
+    failures.dumpLinks();
+    for (vector<Link>::iterator links = failures.getLinks(); links != failures.getLastLink(); links++)
+	MakeLinkFail(ntf->getNodeId((*links).origin), ntf->getNodeId((*links).end), (*links).delay,
+		(*links).failure_start, (*links).failure_duration);
+}
+
 void TopoHelper::Run(uint32_t runtime) {
     p2p.EnablePcapAll(filename, true);
-
-
-    MakeLinkFail(0, 1, 9, Seconds(120));
-
-    //auto ret = FindLinks(&nodes, 0, 1, 9, Seconds(120));
-    /*for (auto it = ret.begin(); it != ret.end(); it++) {
-	NS_LOG_FUNCTION(*it);
-    	NS_LOG_FUNCTION(DynamicCast<NetDevice>(it->first)->GetNode()->GetId() << DynamicCast<NetDevice>(it->second)->GetNode()->GetId());
-    }*/
-    //nodes.Get(0)->GetDevice(0)->SetReceiveCallback(MakeCallback(&LsaProcessDelay));
-
     Simulator::Stop (Seconds (runtime));
     NS_LOG_FUNCTION("Starting simulation.");
     Simulator::Run ();

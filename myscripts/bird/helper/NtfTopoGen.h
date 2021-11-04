@@ -53,13 +53,17 @@ class TopoHelper {
 	void ConfigureIface(Ptr<Node> node, unsigned int id);
 	void TopoGen(void);
 	void ConfigureBird(void);
-	vector<pair<Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>>> LinkCallback(uint32_t src_id, uint32_t dst_id, uint32_t delay_value, Time callback_delay, void (*callback)(Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>));
+	vector<pair<Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>>> LinkCallback(uint32_t src_id, uint32_t dst_id,
+		uint32_t delay_value, void (*callback)(Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>, uint32_t),
+		uint32_t callback_delay, uint32_t callback_duration);
 
     public:
 	TopoHelper(string ntf_file, bool check);
 	~TopoHelper();
-	void MakeLinkFail(uint32_t src_id, uint32_t dst_id, uint32_t delay_value, Time delay);
+	void MakeLinkFail(uint32_t src_id, uint32_t dst_id, uint32_t delay_value, uint32_t delay, uint32_t duration);
+	void MakeLinkFail(uint32_t src_id, uint32_t dst_id, uint32_t delay_value, uint32_t delay);
 	void Run(uint32_t runtime);
+	void ScheduleFailures(string fail_path);
 };
 
 #endif //NTF_TOPO_GEN_H
