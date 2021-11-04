@@ -12,15 +12,22 @@ index 708ef69..a24276e 100644
    OPENED_FD_METHOD_ERR (MAP_FAILED, void *, Mmap (start, length, prot, flags, offset))
  }
 diff --git a/model/libc-ns3.h b/model/libc-ns3.h
-index 3294921..8684b71 100644
+index 3294921..f5c9c25 100644
 --- a/model/libc-ns3.h
 +++ b/model/libc-ns3.h
-@@ -73,6 +73,8 @@ DCE (jrand48)
+@@ -73,6 +73,7 @@ DCE (jrand48)
  DCE (srand48)
  DCE (seed48)
  DCE (lcong48)
-+NATIVE(localtime_r)
 +NATIVE(ffs)
  NATIVE (drand48_r)
  NATIVE (erand48_r)
  NATIVE (lrand48_r)
+@@ -386,6 +387,7 @@ DCE (unlinkat)
+ DCE (nanosleep)
+ DCE (asctime)
+ NATIVE (asctime_r)
++NATIVE(localtime_r)
+ DCE (ctime)
+ NATIVE (ctime_r)
+ DCE_WITH_ALIAS2 (gmtime, localtime)

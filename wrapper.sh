@@ -8,7 +8,8 @@ info() {
 info "Hello from NS3 wrapper."
 info "Re-building NS3 container if required."
 
-docker build -t ns3 -f ns3.containerfile . > /dev/null 2>&1
+#docker build -t ns3 -f ns3.containerfile . > /dev/null 2>&1
+docker build -t ns3 -f ns3.containerfile . 
 
 info "Starting NS3 container. Giving hand to NS3."
 
@@ -19,9 +20,9 @@ docker run \
     -v ${PWD}/helpers:/data/helpers\
     -v ${PWD}/myscripts:/home/ns3dce/dce-linux-dev/source/dce-linux-dev/myscripts\
     -v ${PWD}/inputs:/data/inputs\
-    -e NS_LOG="NtfTopoHelper=all"\
+    -e NS_LOG="NtfTopoHelper=all:BlackholeErrorModel=all"\
     -e DCE_PATH="/data/bird:${DCE_PATH}"\
-    ns3 "--ntf=geant.ntf --check=true --runtime=180 --failures=failures.ntf"
+    ns3 "--ntf=geant.ntf --check=true --runtime=300 --failures=failures.ntf"
 
 info "NS3 finished. Post processing outputs."
 
