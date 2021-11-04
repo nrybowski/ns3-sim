@@ -24,37 +24,3 @@ index 3294921..8684b71 100644
  NATIVE (drand48_r)
  NATIVE (erand48_r)
  NATIVE (lrand48_r)
-diff --git a/model/utils.h b/model/utils.h
-index 3f0696d..9c67072 100644
---- a/model/utils.h
-+++ b/model/utils.h
-@@ -74,17 +74,21 @@ std::string UtilsGenerateIfNameFromIndex(uint32_t i);
- 
- #define OPENED_FD_METHOD_ERR(errCode, rettype, args) \
-   std::map < int,FileUsage * > ::iterator it = current->process->openFiles.find (fd); \
-+  NS_LOG_FUNCTION("here"); \
-   if (current->process->openFiles.end () == it) \
-     { \
-       current->err = EBADF; \
-+      NS_LOG_FUNCTION("fail"); \
-       return (rettype) errCode; \
-     } \
-+  NS_LOG_FUNCTION("here"); \
-   FileUsage *fu = it->second; \
-   if (fu->IsClosed ()) \
-     { \
-       current->err = EBADF; \
-       return (rettype) errCode; \
-     } \
-+  NS_LOG_FUNCTION("here"); \
-   UnixFd *unixFd =  fu->GetFileInc (); \
-   rettype retval = unixFd->args; \
-   if (fu && fu->DecUsage ()) \
-@@ -93,6 +97,7 @@ std::string UtilsGenerateIfNameFromIndex(uint32_t i);
-       delete fu; \
-       fu = 0; \
-     } \
-+  NS_LOG_FUNCTION("here"); \
- \
-   return retval;
- 
