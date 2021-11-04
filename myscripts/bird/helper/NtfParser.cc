@@ -76,11 +76,19 @@ NtfContent::NtfContent(string filename) {
 
 	    // EOL or we parsed the 4 elements we are looking for
 	    // (ignore remaining elements)
-	    if (pos == string::npos || ++count >= 4) break;
+	    if (pos == string::npos || ++count > 6 ) break;
 	}
 
-	string origin = parsed_line.at(0), end = parsed_line.at(1);
-	int metric = mycast(parsed_line.at(2)), delay = mycast(parsed_line.at(3));
+	string origin = parsed_line.at(0),
+			end = parsed_line.at(1);
+	int metric = mycast(parsed_line.at(2)),
+	    delay = mycast(parsed_line.at(3)),
+	    start = -1,
+	    duration = 0;
+	if (parsed_line.size() >= 5)
+	    start = mycast(parsed_line.at(4));
+	if (parsed_line.size() >= 6)
+	    duration = mycast(parsed_line.at(5));
 
 	tuple<string, string> forward_key = make_tuple(origin, end), reverse_key = make_tuple(end, origin);
 	auto forward = links2.find(forward_key), reverse = links2.find(reverse_key);
@@ -89,10 +97,14 @@ NtfContent::NtfContent(string filename) {
 	if (forward == links2.end()) {
 	    if (reverse == links2.end()) {
 		// link does not exist, insert forward
+		Link link(get<0>(forward_key), get<1>(forward_key), metric, delay);
+		link.failure_start = start;
+		link.failure_duration = duration;
+
 		links2.insert(
 			pair<tuple<string, string>, Link>(
 			    forward_key,
-			    Link(get<0>(forward_key), get<1>(forward_key), metric, delay)
+			    link
 			)
 		);
 		nodes.insert(pair<string, int>(origin, nodes.size()));

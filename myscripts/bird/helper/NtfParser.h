@@ -21,12 +21,16 @@ class Link {
 	int delay;
 	int f_metric;
 	int r_metric;
+	int failure_start;
+	int failure_duration;
 	Link(string o, string e, int m, int d) {
 	    origin = o;
 	    end = e;
 	    delay = d;
 	    f_metric = m;
 	    r_metric = 0;
+	    failure_start = -1;
+	    failure_duration = 0;
 	}
 	
 	friend ostream& operator<<(ostream& os, const Link &l) {
@@ -35,6 +39,8 @@ class Link {
 		<< "> | delay <" << l.delay
 		<< "> | f_metric <" << l.f_metric 
 		<< "> r_metric <" << l.r_metric
+		<< "> | failure_start <" << l.failure_start
+		<< "> failure_duration <" <<l.failure_duration
 		<< ">"
 		<< endl;
 	    return os;
