@@ -45,7 +45,7 @@ void NtfContent::dumpNodes(string filename) {
 
 void NtfContent::dumpLinks() {
     for (vector<Link>::iterator it = links.begin(); it != links.end(); it++) {
-	cout << *it << endl;
+	cout << *it;
     }
 }
 
