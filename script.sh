@@ -8,6 +8,14 @@ cp myscripts/bird/test.py .
 cp /data/inputs/* .
 
 info "Re-compiling bird."
+CURDIR="${PWD}"
+if [[ ! -f /data/bird/Makefile ]]
+then
+       cd /data/bird
+       autoreconf
+       CFLAGS="-fPIC" LDFLAGS="-rdynamic -pie" ./configure --disable-client
+       cd "${CURDIR}"
+fi
 make -C /data/bird -j $(nproc)
 
 info "Running NS3."
