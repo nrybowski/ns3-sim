@@ -20,8 +20,9 @@ docker run \
     -v ${PWD}/helpers:/data/helpers\
     -v ${PWD}/myscripts:/home/ns3dce/dce-linux-dev/source/dce-linux-dev/myscripts\
     -v ${PWD}/inputs:/data/inputs\
+    -v ${PWD}/my_exe:/data/my_exe\
     -e NS_LOG="NtfTopoHelper=all:BlackholeErrorModel=all"\
-    -e DCE_PATH="/data/bird:${DCE_PATH}"\
+    -e DCE_PATH="/data/bird:/data/my_exe:${DCE_PATH}"\
     ns3 "--ntf=geant.ntf --check=true --runtime=300 --failures=failures.ntf"
 
 info "NS3 finished. Post processing outputs."

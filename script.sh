@@ -17,6 +17,7 @@ then
        cd "${CURDIR}"
 fi
 make -C /data/bird -j $(nproc)
+make -C /data/my_exe -j $(nproc)
 
 info "Running NS3."
 ./waf --run dce-ntf-bird --command-template "%s ${1}"

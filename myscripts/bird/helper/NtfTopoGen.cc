@@ -158,6 +158,18 @@ void TopoHelper::TopoGen(void) {
     }
 }
 
+DceApplicationHelper *TopoHelper::GetDce(void) {
+    return &dce;
+}
+
+ApplicationContainer *TopoHelper::GetApp(void) {
+    return &app;
+}
+
+NodeContainer *TopoHelper::GetNodes(void) {
+    return &nodes;
+}
+
 void TopoHelper::ConfigureBird(void) {
 
     NS_LOG_FUNCTION("Configuring BIRD daemons");

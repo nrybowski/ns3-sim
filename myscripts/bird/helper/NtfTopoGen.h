@@ -64,6 +64,9 @@ class TopoHelper {
 	void MakeLinkFail(uint32_t src_id, uint32_t dst_id, uint32_t delay_value, uint32_t delay);
 	void Run(uint32_t runtime);
 	void ScheduleFailures(string fail_path);
+	NodeContainer *GetNodes(void);
+	ApplicationContainer *GetApp(void);
+	DceApplicationHelper *GetDce(void);
 };
 
 #endif //NTF_TOPO_GEN_H

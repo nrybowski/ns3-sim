@@ -18,6 +18,17 @@ int main (int argc, char *argv[]) {
     TopoHelper topo(ntf, check);
     if (strcmp(failures.c_str(), "") != 0)
 	topo.ScheduleFailures(failures);
+
+    NodeContainer *nodes = topo.GetNodes();
+    DceApplicationHelper *dce = topo.GetDce();
+    ApplicationContainer app;
+
+    dce->SetStackSize(1 << 20);
+    dce->SetBinary("udp");
+    dce->ResetArguments();
+    app = dce->Install(nodes->Get(0));
+    app.Start(Seconds(60));
+
     topo.Run(runtime);
 
   return 0;
