@@ -24,7 +24,13 @@ int main (int argc, char *argv[]) {
     ApplicationContainer app;
 
     dce->SetStackSize(1 << 20);
-    dce->SetBinary("udp");
+    dce->SetBinary("udp_server");
+    dce->ResetArguments();
+    app = dce->Install(nodes->Get(18));
+    app.Start(Seconds(30));
+
+    dce->SetStackSize(1 << 20);
+    dce->SetBinary("udp_client");
     dce->ResetArguments();
     app = dce->Install(nodes->Get(0));
     app.Start(Seconds(60));

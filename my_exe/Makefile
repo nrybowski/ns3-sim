@@ -1,6 +1,9 @@
 CFLAGS=-fPIC
 LDFLAGS=-rdynamic -pie
 
-udp:
-	gcc $(CFLAGS) $(LDFLAGS) -o udp udp.c
+all: udp_client udp_server
 
+udp_client:
+	gcc $(CFLAGS) $(LDFLAGS) -o udp_client udp_client.c
+udp_server:
+	gcc $(CFLAGS) $(LDFLAGS) -o udp_server udp_server.c
