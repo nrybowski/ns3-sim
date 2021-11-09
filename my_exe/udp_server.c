@@ -33,8 +33,12 @@ int main(int argc, char **argv) {
     char buf[1024];
     while (1) {
 	recvd = recvfrom(fd, buf, sizeof(buf), 0, NULL, NULL);
+	if (recvd == -1) {
+	    perror("error");
+	    continue;
+	}
 	clock_gettime(CLOCK_REALTIME, &tp);
-	printf(buf);
+	printf("current <%lu> received <%s>\n", tp.tv_sec * 1000000 + tp.tv_nsec / 1000, buf);
     }
 
     close(fd);
