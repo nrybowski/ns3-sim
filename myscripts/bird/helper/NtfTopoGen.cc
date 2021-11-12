@@ -282,6 +282,7 @@ void TopoHelper::ScheduleFailures(string fail_path) {
 void TopoHelper::Run(uint32_t runtime) {
     p2p.EnablePcapAll(filename, true);
     Simulator::Stop (Seconds (runtime));
+    //AnimationInterface anim (filename + ".xml");
     NS_LOG_FUNCTION("Starting simulation.");
     Simulator::Run ();
     Simulator::Destroy ();

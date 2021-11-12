@@ -13,10 +13,11 @@ if [[ ! -f /data/bird/Makefile ]]
 then
        cd /data/bird
        autoreconf
-       CFLAGS="-fPIC" LDFLAGS="-rdynamic -pie" ./configure --disable-client
+       CFLAGS="-fPIC -D NS3" LDFLAGS="-rdynamic -pie" ./configure --disable-client
        cd "${CURDIR}"
 fi
 make -C /data/bird -j $(nproc)
+rm /data/my_exe/udp_client /data/my_exe/udp_server
 make -C /data/my_exe -j $(nproc)
 
 info "Running NS3."
@@ -31,6 +32,6 @@ if [[ ! -d /data/output/files ]]; then mkdir /data/output/files; else rm -rf /da
 mv -f files-* /data/output/files > /dev/null 2>&1
 
 #info ""
-mv -f geant.check /data/output > /dev/null 2>&1
+mv -f geant.check geant.xml /data/output > /dev/null 2>&1
 
 info "Leaving container."

@@ -13,7 +13,6 @@ int main (int argc, char *argv[]) {
     cmd.AddValue ("failures", "Path to the NTF failure file", failures);
     cmd.Parse (argc, argv);
 
-    //AnimationInterface anim ("geant-anim.xml");
 
     TopoHelper topo(ntf, check);
     if (strcmp(failures.c_str(), "") != 0)
@@ -26,14 +25,14 @@ int main (int argc, char *argv[]) {
     dce->SetStackSize(1 << 20);
     dce->SetBinary("udp_server");
     dce->ResetArguments();
-    app = dce->Install(nodes->Get(18));
+    app = dce->Install(nodes->Get(4));
     app.Start(Seconds(30));
 
     dce->SetStackSize(1 << 20);
     dce->SetBinary("udp_client");
     dce->ResetArguments();
     app = dce->Install(nodes->Get(0));
-    app.Start(Seconds(60));
+    app.Start(Seconds(85));
 
     topo.Run(runtime);
 
