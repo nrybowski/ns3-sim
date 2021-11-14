@@ -50,7 +50,7 @@ class TopoHelper {
 	unsigned int a; /**< IP address counter. @see ConfigureIface. */
 
 	// Methods
-	void ConfigureIface(Ptr<Node> node, unsigned int id);
+	string ConfigureIface(Ptr<Node> node, unsigned int id);
 	void TopoGen(void);
 	void ConfigureBird(void);
 	vector<pair<Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>>> LinkCallback(uint32_t src_id, uint32_t dst_id,

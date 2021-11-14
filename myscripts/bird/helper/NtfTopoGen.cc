@@ -52,9 +52,12 @@ TopoHelper::~TopoHelper() {
 /**
  * Configure node's iface with specific ip.
  */
-void TopoHelper::ConfigureIface(Ptr<Node> node, unsigned int id) {
-    LinuxStackHelper::RunIp (node, Seconds (1), "a add 10.0.0." + to_string(a++) + "/32 dev sim" + to_string(id));
+string TopoHelper::ConfigureIface(Ptr<Node> node, unsigned int id) {
+    string ip = "10.0.0." + to_string(a++) + "/32";
+    //NS_LOG_FUNCTION(node->GetId() << id << ip);
+    LinuxStackHelper::RunIp (node, Seconds (1), "a add " + ip + " dev sim" + to_string(id));
     LinuxStackHelper::RunIp (node, Seconds (1), "l set dev sim" + to_string(id) + " up");
+    return ip;
 }
 
 /**
@@ -153,8 +156,9 @@ void TopoHelper::TopoGen(void) {
 	metrics.insert(pair<tuple<uint32_t, uint32_t>, uint32_t>(make_tuple(n2_id, n2_iface_id), l.r_metric));
 
 	// Configure newly created ifaces
-	ConfigureIface(n1, n1_iface_id);
-	ConfigureIface(n2, n2_iface_id);
+	string ip1 = ConfigureIface(n1, n1_iface_id),
+	       ip2 = ConfigureIface(n2, n2_iface_id);
+	NS_LOG_FUNCTION(n1->GetId() << n2->GetId() << ip1 << ip2);
     }
 }
 
@@ -216,12 +220,17 @@ void TopoHelper::ConfigureBird(void) {
 	    config << "\t\t\tcost " << metric << ";" <<endl;
 	    config << "\t\t\thello 5;\n\t\t};" <<endl;
 	}
+	config << "\t\tinterface \"lo\" {" << endl;
+	//config << "\t\t\tstub yes;" <<endl;
+	config << "\t\t\thello 5;\n\t\t};" <<endl;
+
 	config << "\t};\n}" << endl;
 
 	// End of BIRD config.
 	config.close();
 
 	// Set lo iface up.
+	LinuxStackHelper::RunIp (*node, Seconds (1), "a add 10.0.1." + to_string((*node)->GetId()+1) + "/32 dev lo");
 	LinuxStackHelper::RunIp (*node, Seconds (1), "l set dev lo up");
 
 	// Configure BIRD daemon and schedule its start.

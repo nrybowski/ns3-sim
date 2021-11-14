@@ -25,14 +25,35 @@ int main (int argc, char *argv[]) {
     dce->SetStackSize(1 << 20);
     dce->SetBinary("udp_server");
     dce->ResetArguments();
-    app = dce->Install(nodes->Get(4));
+    app = dce->Install(nodes->Get(2));
     app.Start(Seconds(30));
 
-    dce->SetStackSize(1 << 20);
-    dce->SetBinary("udp_client");
-    dce->ResetArguments();
-    app = dce->Install(nodes->Get(0));
-    app.Start(Seconds(85));
+    for (int i = 0; i < 6; i++) {
+	if (i == 2) continue;
+	dce->SetStackSize(1 << 20);
+   	dce->SetBinary("udp_client");
+    	dce->ResetArguments();
+    	app = dce->Install(nodes->Get(i));
+    	app.Start(Seconds(85));
+    }
+    
+    for (int i = 0; i < 6; i++) {
+	dce->SetStackSize(1 << 20);
+    	dce->SetBinary("ip");
+    	dce->ResetArguments();
+	dce->ParseArguments("r");
+    	app = dce->Install(nodes->Get(i));
+    	app.Start(Seconds(85));
+    }
+
+    for (int i = 0; i < 6; i++) {
+	dce->SetStackSize(1 << 20);
+    	dce->SetBinary("ip");
+    	dce->ResetArguments();
+	dce->ParseArguments("r");
+    	app = dce->Install(nodes->Get(i));
+    	app.Start(Seconds(250));
+    }
 
     topo.Run(runtime);
 

@@ -31,3 +31,11 @@ index 3294921..f5c9c25 100644
  DCE (ctime)
  NATIVE (ctime_r)
  DCE_WITH_ALIAS2 (gmtime, localtime)
+@@ -597,6 +599,7 @@ DCE (vsyslog)
+ NATIVE (_setjmp)
+ NATIVE (__sigsetjmp)
+ NATIVE (siglongjmp)
++NATIVE (longjmp)
+
+ // LIBINTL.H
+ NATIVE (bindtextdomain)
