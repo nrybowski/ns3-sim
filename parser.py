@@ -1,10 +1,20 @@
-with open('udp_ping.log', 'r') as fd:
+import sys
+
+if len(sys.argv) < 2:
+    print("Usage:")
+    exit(1)
+
+path = sys.argv[1]
+
+with open(path, 'r') as fd:
     data = fd.read().split('\n')[:-1]
 
 content = {}
 
+print(path)
+
 for line in data:
-    rid, addr, recv, current = line.split(',')
+    rid, recv, current = line.split(',')
     recv = int(recv)
     try:
         gap = recv - content[rid]

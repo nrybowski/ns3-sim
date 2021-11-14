@@ -1,8 +1,14 @@
+import sys
+
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import dijkstra
 import numpy as np
 
-with open('networks/house/house.ntf', 'r') as fd:
+if len(sys.argv) < 2:
+    print("Usage:")
+    exit(1)
+
+with open(sys.argv[1], 'r') as fd:
     data = fd.read().split('\n')[:-1]
 
 nodes = []
@@ -36,4 +42,4 @@ leaves = [['10.0.1.%i' % (i+1) for i in range(0,6) if i not in pred] for pred in
 
 with open('udp.ping', 'w') as fd:
     for line in leaves:
-        fd.write('%s\n' % ', '.join(line))
+        fd.write('%s\n' % ','.join(line))
