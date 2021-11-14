@@ -5,10 +5,14 @@ info() {
     echo -e "[INFO][wrapper] $*"
 }
 
+NTF="${1}"
+FAILURES="${2}"
+
 info "Hello from NS3 wrapper."
 info "Re-building NS3 container if required."
 
 #docker build -t ns3 -f ns3.containerfile . > /dev/null 2>&1
+docker build -t ns3-base -f ns3-base.containerfile .
 docker build -t ns3 -f ns3.containerfile . 
 
 info "Starting NS3 container. Giving hand to NS3."
@@ -23,17 +27,18 @@ docker run \
     -v ${PWD}/my_exe:/data/my_exe\
     -e NS_LOG="NtfTopoHelper=all:BlackholeErrorModel=all"\
     -e DCE_PATH="/data/bird:/data/my_exe:${DCE_PATH}"\
-    ns3 "--ntf=geant.ntf --check=true --runtime=300 --failures=failures.ntf"
+    ns3 "--ntf=${NTF}.ntf --check=true --runtime=300 --failures=${FAILURES}.ntf"
+    #ns3 "--ntf=geant.ntf --check=true --runtime=300 --failures=failures.ntf"
 
 info "NS3 finished. Post processing outputs."
 
 CURDIR="${PWD}"
 cd output/traces
 
-NODES=$(wc -l <geant.map)
+NODES=$(wc -l <"${NTF}.map")
 for i in $(seq 0 $((${NODES}-1)))
 do
-    mergecap geant-"${i}"-* -w "geant-$i.pcap"
+    mergecap "${NTF}-${i}"-* -w "${NTF}-$i.pcap"
 done
 
 cd "${CURDIR}"

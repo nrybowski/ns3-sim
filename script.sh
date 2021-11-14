@@ -25,13 +25,13 @@ info "Running NS3."
 
 info "Moving pcap traces."
 if [[ ! -d /data/output/traces ]]; then mkdir /data/output/traces; fi
-mv -f *.pcap geant.map /data/output/traces > /dev/null 2>&1
+mv -f *.pcap *.map /data/output/traces > /dev/null 2>&1
 
 info "Moving node files."
 if [[ ! -d /data/output/files ]]; then mkdir /data/output/files; else rm -rf /data/output/files/*; fi
 mv -f files-* /data/output/files > /dev/null 2>&1
 
 #info ""
-mv -f geant.check geant.xml /data/output > /dev/null 2>&1
+mv -f *.check *.xml /data/output > /dev/null 2>&1
 
 info "Leaving container."
