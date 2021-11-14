@@ -50,17 +50,6 @@ COPY bakeconf.xml.patch .
 ENV PATH=/usr/lib/ccache:${PATH}
 RUN git apply --whitespace=warn < bakeconf.xml.patch
 
-#RUN  su - ns3dce -c "\
-#      export PATH=/usr/lib/ccache:${PATH} &&\
-#      cd /home/ns3dce/dce-linux-dev/bake &&\
-#      diff bakeconf.xml bakeconf.xml.test ;\
-#      git apply --whitespace=warn < bakeconf.xml.patch ;\
-#      cd .. &&\
-#      ./bake/bake.py configure -e dce-linux-dev &&\
-#      ./bake/bake.py download &&\
-#      ./bake/bake.py build -j $(nproc) -vvv\
-#    "
-
 WORKDIR /home/ns3dce/dce-linux-dev
 RUN ./bake/bake.py configure -e dce-linux-dev
 RUN ./bake/bake.py download
