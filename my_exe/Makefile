@@ -1,4 +1,4 @@
-CFLAGS=-fPIC
+CFLAGS=-fPIC -g
 LDFLAGS=-rdynamic -pie
 
 all: udp_client udp_server
