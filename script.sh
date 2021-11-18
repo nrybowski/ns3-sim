@@ -21,7 +21,7 @@ rm /data/my_exe/udp_client /data/my_exe/udp_server
 make -C /data/my_exe -j $(nproc)
 
 info "Running NS3."
-./waf --run dce-ntf-bird --command-template "%s ${1}"
+time ./waf --run dce-ntf-bird --command-template "%s ${1}"
 
 info "Moving pcap traces."
 if [[ ! -d /data/output/traces ]]; then mkdir /data/output/traces; fi

@@ -31,6 +31,7 @@ n = len(nodes)
 graph = []
 for idx, node in enumerate(nodes):
     graph.append([links[node][nodes[i]] if nodes[i] in links[node] else np.inf for i in range(0, n)])
+print(graph)
 
 #print(csr_matrix(graph))
 

@@ -18,7 +18,10 @@ for line in data:
     recv = int(recv)
     try:
         gap = recv - content[rid]
-        if gap != 5000:
+        if gap < 0:
+            print("%i micro-loop" % int(rid.split('.')[-1]) - 1)
+            continue
+        elif gap != 5000:
             print("%i <%i> %i" % (int(rid.split('.')[-1]) - 1 , (gap/1000), content[rid]))
         content[rid] = recv
     except KeyError:
