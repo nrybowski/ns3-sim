@@ -15,9 +15,10 @@ RUN pip3.7 install --upgrade pip
 
 WORKDIR /home/ns3dce/dce-linux-dev/source/dce-linux-dev
 RUN /bin/bash -c "if [[ ! -f /var/run/bird.ctl ]]; then touch /var/run/bird.ctl; chown ns3dce:ns3dce /var/run/bird.ctl; fi"
-COPY script.sh spfs.py requirements.txt ./
-RUN chmod +x script.sh && chown ns3dce:ns3dce script.sh
+COPY requirements.txt .
 RUN pip3.7 install -r requirements.txt
+COPY script.sh spfs.py ./
+RUN chmod +x script.sh && chown ns3dce:ns3dce script.sh
 
 USER ns3dce
 ENTRYPOINT ["./script.sh"]
