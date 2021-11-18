@@ -13,7 +13,6 @@ int main (int argc, char *argv[]) {
     cmd.AddValue ("failures", "Path to the NTF failure file", failures);
     cmd.Parse (argc, argv);
 
-
     TopoHelper topo(ntf, check);
     if (strcmp(failures.c_str(), "") != 0)
 	topo.ScheduleFailures(failures);
@@ -22,19 +21,49 @@ int main (int argc, char *argv[]) {
     DceApplicationHelper *dce = topo.GetDce();
     ApplicationContainer app;
 
-    dce->SetStackSize(1 << 20);
-    dce->SetBinary("udp_server");
-    dce->ResetArguments();
-    app = dce->Install(nodes->Get(2));
-    app.Start(Seconds(30));
+    string spfs_cmd = "python3.7 spfs.py " + ntf;
+    int ret = system(spfs_cmd.c_str());
+    NS_ABORT_MSG_IF(!WIFEXITED(ret), "Some error occured during SPFs computation");
+    NS_ABORT_MSG_IF(WEXITSTATUS(ret) != 0, "Invalid SPFs computation");
 
-    for (int i = 0; i < 6; i++) {
-	if (i == 2) continue;
+    // Open leaves file
+    string spfs_in = "udp.ping";
+    FILE *spfs = fopen(spfs_in.c_str(), "r");
+    if (!spfs) {
+	    cout << "Can't open " << spfs_in << " file." << endl;
+	    exit(1);
+    }
+
+    size_t len;
+    char *buf = NULL, *token, *in;
+    int iteration = 0;
+    while (getline(&buf, &len, spfs) != -1) {
+	printf("%i %s", iteration, buf);
+	for (in = buf; ;in = NULL) {
+	    token = strtok(in, ",");
+	    if (token == NULL)
+		break;
+	    printf("%s\n", token);
+	    dce->SetStackSize(1 << 20);
+	    dce->SetBinary("udp_client");
+	    dce->ResetArguments();
+	    dce->ParseArguments(token);
+	    app = dce->Install(nodes->Get(iteration));
+	    app.Start(Seconds(85));
+	}
+	iteration++;
+    }
+
+    free(buf);
+    fclose(spfs);
+
+    for (int i = 0; i < nodes->GetN(); i++) {
+	// Launch UDP server on each node
 	dce->SetStackSize(1 << 20);
-   	dce->SetBinary("udp_client");
+    	dce->SetBinary("udp_server");
     	dce->ResetArguments();
     	app = dce->Install(nodes->Get(i));
-    	app.Start(Seconds(85));
+    	app.Start(Seconds(30));
     }
     
     for (int i = 0; i < 6; i++) {
@@ -54,6 +83,14 @@ int main (int argc, char *argv[]) {
     	app = dce->Install(nodes->Get(i));
     	app.Start(Seconds(250));
     }
+
+	dce->SetStackSize(1 << 20);
+    	dce->SetBinary("birdcl");
+    	dce->ResetArguments();
+	dce->ParseArguments("-s /var/run/bird.ctl show protocols all");
+    	app = dce->Install(nodes->Get(1));
+    	app.Start(Seconds(85));
+
 
     topo.Run(runtime);
 
