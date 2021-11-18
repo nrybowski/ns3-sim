@@ -17,30 +17,6 @@
 
 int main(int argc, char **argv) {
 
-
-    /*struct ifaddrs *ifap;
-    if (getifaddrs(&ifap) == -1) {
-        perror("getifaddrs");
-        exit(EXIT_FAILURE);
-    }
-    
-    char *rid = NULL;
-    struct ifaddrs *iface = NULL;
-    for (iface = ifap; iface != NULL; iface = iface->ifa_next) {
-	if (iface->ifa_addr == NULL)
-	    continue;
-
-        if (strncmp("lo", iface->ifa_name, 2) == 0 && iface->ifa_addr->sa_family == AF_INET) {
-            struct sockaddr_in *addr = (struct sockaddr_in*) iface->ifa_addr;
-	    rid = inet_ntoa(addr->sin_addr);
-	    if (strncmp("127.0.0.1", rid, 9) != 0) {
-            	printf("%s %s\n", iface->ifa_name, rid);
-		break;
-	    }
-        }
-    }
-    freeifaddrs(ifap);*/
-
     struct timespec tp;
 
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -60,7 +36,7 @@ int main(int argc, char **argv) {
 
     ssize_t recvd;
     time_t received;
-    uint32_t buf[2];
+    //uint32_t buf[2];
 
     struct sockaddr_in src;
     socklen_t addrlen = sizeof(src);
@@ -71,14 +47,14 @@ int main(int argc, char **argv) {
 	    exit(1);
     }
 
-    my data;
-    char *rid = NULL;
+    //my data;
     char *raddr = NULL;
+    long buf;
     while (1) {
 	memset(&src, 0, sizeof(src));
-	memset(&data, 0, sizeof(data));
-	//recvd = recvfrom(fd, &buf, sizeof(buf), 0, (struct sockaddr*) &src, &addrlen);
-	recvd = recvfrom(fd, &data, sizeof(data), 0, (struct sockaddr*) &src, &addrlen);
+	//memset(&data, 0, sizeof(data));
+	recvd = recvfrom(fd, &buf, sizeof(buf), 0, (struct sockaddr*) &src, &addrlen);
+	//recvd = recvfrom(fd, &data, sizeof(data), 0, (struct sockaddr*) &src, &addrlen);
 	if (recvd == -1) {
 	    perror("error");
 	    continue;
@@ -87,9 +63,9 @@ int main(int argc, char **argv) {
 	clock_gettime(CLOCK_REALTIME, &tp);
 	//received = (((time_t) ntohl(buf[0]) << 32) & 0xffffffff00000000) | ((time_t) ntohl(buf[1]) & 0x00000000ffffffff);
 	//fprintf(log_fd, "%s, %s, %lu, %lu\n", inet_ntoa(data.src), inet_ntoa(src.sin_addr), tp.tv_sec * 1000000 + tp.tv_nsec / 1000, data.current);
-	//raddr = inet_ntoa(src.sin_addr);
-	rid = inet_ntoa(data.src);
-	fprintf(log_fd, "%s, %lu, %lu\n", rid, data.current, tp.tv_sec * 1000000 + tp.tv_nsec / 1000);
+	raddr = inet_ntoa(src.sin_addr);
+	//fprintf(log_fd, "%s, %lu, %lu\n", raddr, data.current, tp.tv_sec * 1000000 + tp.tv_nsec / 1000);
+	fprintf(log_fd, "%s, %lu, %lu\n", raddr, buf, tp.tv_sec * 1000000 + tp.tv_nsec / 1000);
     }
 
     fclose(log_fd);
