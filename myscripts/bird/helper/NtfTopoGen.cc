@@ -3,14 +3,21 @@
 NS_LOG_COMPONENT_DEFINE("NtfTopoHelper");
 
 void LinkFailure(Ptr<PointToPointNetDevice> src, Ptr<PointToPointNetDevice> dst, uint32_t end) {
-    Ptr<BlackholeErrorModel> em = CreateObject<BlackholeErrorModel>();
+    /*Ptr<BlackholeErrorModel> em = CreateObject<BlackholeErrorModel>();
     if (end != 0) {
 	//NS_LOG_FUNCTION(Seconds(end));
 	//Simulator::Schedule(Seconds(end), MakeEvent(BlackholeErrorModel::Disable, em));
 	Simulator::Schedule(Seconds(end), &Disable, em, Seconds(end), 1);
     }
     src->SetReceiveErrorModel(PointerValue(em));
-    dst->SetReceiveErrorModel(PointerValue(em));
+    dst->SetReceiveErrorModel(PointerValue(em));*/
+    /*dce.SetStackSize (1 << 20);
+    dce.SetBinary ("ip");
+    dce.ResetEnvironment();
+    dce.ResetArguments ();
+    dce.ParseArguments("l set dev sim"+src->GetIfIndex()+" down");
+    app = dce.Install (src->GetNode(node_id));
+    app.Start (Seconds (5+0.5*node_id));*/
 }
 
 void LinkFailure(Ptr<PointToPointNetDevice> src, Ptr<PointToPointNetDevice> dst) {
@@ -102,7 +109,14 @@ vector<pair<Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>>> TopoHelper:
 	ret.push_back(pair<Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>>(src_p2p, dst_p2p));
 	//Simulator::Schedule(callback_delay, callback, src_p2p, dst_p2p);
 	//uint32_t end = callback_duration == 0 ? 0 : callback_duration + callback_delay;
-	Simulator::Schedule(Seconds(callback_delay), MakeEvent(callback, src_p2p, dst_p2p, callback_duration));
+	//Simulator::Schedule(Seconds(callback_delay), MakeEvent(callback, src_p2p, dst_p2p, callback_duration));
+	dce.SetStackSize (1 << 20);
+    	dce.SetBinary ("ip");
+    	dce.ResetEnvironment();
+    	dce.ResetArguments ();
+    	dce.ParseArguments("l set dev sim"+to_string(src_p2p->GetIfIndex())+" down");
+    	app = dce.Install (src_nd->GetNode());
+    	app.Start (Seconds (callback_delay));
     }
 
     return ret;
@@ -115,6 +129,7 @@ vector<pair<Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>>> TopoHelper:
 
 void TopoHelper::MakeLinkFail(uint32_t src_id, uint32_t dst_id, uint32_t delay_value, uint32_t delay, uint32_t duration) {
     NS_LOG_FUNCTION("Scheduling link (" << src_id << "->" << dst_id << ") failure at " << delay);
+    
     LinkCallback(src_id, dst_id, delay_value, LinkFailure, delay, duration);
 }
 
@@ -156,8 +171,14 @@ void TopoHelper::TopoGen(void) {
 	metrics.insert(pair<tuple<uint32_t, uint32_t>, uint32_t>(make_tuple(n2_id, n2_iface_id), l.r_metric));
 
 	// Configure newly created ifaces
-	string ip1 = ConfigureIface(n1, n1_iface_id),
-	       ip2 = ConfigureIface(n2, n2_iface_id);
+	//string ip1 = ConfigureIface(n1, n1_iface_id),
+	//       ip2 = ConfigureIface(n2, n2_iface_id);
+	string ip1 = "10.0.0." + to_string(a++) + "/32",
+	       ip2 = "10.0.0." + to_string(a++) + "/32";
+	LinuxStackHelper::RunIp (n1, Seconds (1), "a add " + ip1 + " peer " + ip2 + " dev sim" + to_string(n1_iface_id));
+	LinuxStackHelper::RunIp (n1, Seconds (1), "l set dev sim" + to_string(n1_iface_id) + " up");
+	LinuxStackHelper::RunIp (n2, Seconds (1), "a add " + ip2 + " peer " + ip1 + " dev sim" + to_string(n2_iface_id));
+	LinuxStackHelper::RunIp (n2, Seconds (1), "l set dev sim" + to_string(n2_iface_id) + " up");
 	NS_LOG_FUNCTION(n1->GetId() << n2->GetId() << ip1 << ip2);
     }
 }
@@ -194,6 +215,10 @@ void TopoHelper::ConfigureBird(void) {
 	mkdir(dev_dir.c_str(), S_IRWXU | S_IRWXG);
 	ofstream devnull(dev_dir + "/null");
 	devnull.close();
+
+	string lo_addr = "10.0.1." + to_string(node_id+1);
+
+	// OSPF config
 	
 	// Generic BIRD config
 	// @see https://bird.network.cz/doc/bird-3.html for more details
@@ -201,16 +226,17 @@ void TopoHelper::ConfigureBird(void) {
 	config << "log \"/var/log/bird.log\" all;" <<endl;
 	config << "debug protocols all;" <<endl;
 	config << "debug latency on;" <<endl;
-	config << "router id " << node_id+1 << ";" <<endl;
+	config << "router id " << lo_addr << ";" <<endl;
 	config << "protocol device {}" <<endl;
 	config << "protocol direct {\n\tdisabled;\n\tipv4;\n\tipv6;\n}" <<endl;
-	config << "protocol kernel {\n\tipv4 {\n\t\texport all;\n\t};\n}" <<endl;
+	config << "protocol kernel {\n\tipv4 {\n\t\texport filter {\n\t\t\tkrt_prefsrc=" << lo_addr << ";\n\t\t\taccept;\n\t\t};\n\t};\n}" <<endl;
 	config << "protocol static {\n\tipv4;\n}" <<endl;
 
 	// OSPF config
 	map<tuple<uint32_t, uint32_t>, uint32_t>::iterator metric_data;
 	uint32_t metric;
-	config << "protocol ospf v2 {\n\tarea 0 {" <<endl;
+	//config << "protocol ospf v2 {\n\ttick 50000;\n\tarea 0 {" <<endl;
+	config << "protocol ospf v2 {\n\tecmp no;\n\ttick 50000;\n\tarea 0 {" <<endl;
 	for (uint32_t i=0; i<n_ifaces; i++) {
 	    metric_data = metrics.find(make_tuple(node_id, i));
 	    // 0 will cause invalid BIRD config and segfault during NS3 run
@@ -221,6 +247,7 @@ void TopoHelper::ConfigureBird(void) {
 	    config << "\t\t\thello 5;\n\t\t};" <<endl;
 	}
 	config << "\t\tinterface \"lo\" {" << endl;
+	config << "\t\t\ttype ptp;" <<endl;
 	//config << "\t\t\tstub yes;" <<endl;
 	config << "\t\t\thello 5;\n\t\t};" <<endl;
 
@@ -230,7 +257,7 @@ void TopoHelper::ConfigureBird(void) {
 	config.close();
 
 	// Set lo iface up.
-	LinuxStackHelper::RunIp (*node, Seconds (1), "a add 10.0.1." + to_string((*node)->GetId()+1) + "/32 dev lo");
+	LinuxStackHelper::RunIp (*node, Seconds (1), "a add " + lo_addr +"/32 dev lo");
 	LinuxStackHelper::RunIp (*node, Seconds (1), "l set dev lo up");
 
 	// Configure BIRD daemon and schedule its start.
