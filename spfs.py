@@ -15,6 +15,8 @@ nodes = []
 links = {}
 
 for line in data:
+    if line[0] == '#':
+        continue
     src, dst, metric, delay = line.split(' ')
     if src not in nodes:
         nodes.append(src)
