@@ -39,10 +39,14 @@ dx = 5000
 ORIGIN = 1262304000000000
 VALIDATE = 100
 
+def iconvert(timestamp: int) -> int:
+    return timestamp*pow(10,6) + ORIGIN
+
 def convert(timestamp: int) -> float:
     return (timestamp - ORIGIN) / pow(10, 6)
 
 def local_gaps(data: str):
+    fails = [90, 120]
     gaps = []
     control = {}
     for line in data.split('\n')[:-1]:
@@ -88,18 +92,40 @@ def local_gaps(data: str):
                 control[src]['previous'] = timestamp
         except KeyError:
             control[src] = {'low': timestamp, 'previous': 0, 'candidate': 0, 'validate': VALIDATE}
-    return gaps
+    a = {}
+    idx = 0
+    def fit(fail, gap):
+        f = iconvert(fail)
+        return f >= gap[1] and f <= gap[2]
+
+    for gap in gaps:
+        while not fit(fails[idx], gap):
+            idx +=1
+        try:
+            a[fails[idx]].append(gap)
+        except KeyError:
+            a[fails[idx]] = [gap]
+    print(a)
+
+    return a
 
 def converge_time():
     base = 'mnt/files'
-    all_gaps = []
+    all_gaps = {}
     for directory in os.listdir(base):
         with open('%s/%s/var/log/udp_ping.log' % (base, directory), 'r') as fd:
             print(directory)
-            all_gaps += local_gaps(fd.read())
-    low = sorted(all_gaps, key=lambda x: x[1])[0][1]
-    high = sorted(all_gaps, key=lambda x: x[2], reverse=True)[0][2]
-    print(convert(low), convert(high), (high - low)/1000)
+            for key, value in local_gaps(fd.read()).items():
+                try:
+                    all_gaps[key] += value
+                except KeyError:
+                    all_gaps[key] = value
+    print(all_gaps)
+    print()
+    for key, value in all_gaps.items():
+        low = sorted(value, key=lambda x: x[1])[0][1]
+        high = sorted(value, key=lambda x: x[2], reverse=True)[0][2]
+        print(key, convert(low), convert(high), (high - low)/1000)
 
 if __name__ == '__main__':
     converge_time() 
