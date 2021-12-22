@@ -1,0 +1,7 @@
+log_commit (sysdep/unix/log.c)
+- current_real_time (lib/timer.c)
+ - timeloop_current (lib/timer.c)
+  - pthread_getspecific(current_time_key) (")
+ - times_update_real_time (lib/timer.c)
+   - clock_gettime (dce-time.cc)
+- tm_format_real_time (lib/timer.c)
