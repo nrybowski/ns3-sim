@@ -21,7 +21,7 @@ int main (int argc, char *argv[]) {
     DceApplicationHelper *dce = topo.GetDce();
     ApplicationContainer app;
 
-    string spfs_cmd = "python3.7 spfs.py " + ntf;
+    string spfs_cmd = "python3 spfs.py " + ntf;
     int ret = system(spfs_cmd.c_str());
     NS_ABORT_MSG_IF(!WIFEXITED(ret), "Some error occured during SPFs computation");
     NS_ABORT_MSG_IF(WEXITSTATUS(ret) != 0, "Invalid SPFs computation");

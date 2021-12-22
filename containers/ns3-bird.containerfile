@@ -29,14 +29,20 @@ COPY ns3-dev.patch .
 RUN git apply --whitespace=warn < ns3-dev.patch
 
 # Rebuild ns3 with patches
+WORKDIR /home/ns3dce/dce-linux-dev
 RUN ./bake/bake.py build -j $(nproc) -vvv
 
 # Install scripts and their requirements
 WORKDIR /home/ns3dce/dce-linux-dev/source/dce-linux-dev
 COPY requirements.txt .
 RUN pip3.7 install -r requirements.txt
-COPY script.sh spfs.py ./
-RUN chmod +x script.sh
+#COPY script.sh spfs.py ./
+COPY script.sh .
+
+USER root
+RUN rm /usr/bin/python3
+RUN ln -s /usr/local/bin/python3.7 /usr/bin/python3
+USER ns3dce
 
 ENTRYPOINT ["./script.sh"]
 CMD [""]

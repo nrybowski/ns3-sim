@@ -41,7 +41,8 @@ print(graph)
 _, predecessors = dijkstra(csgraph=csr_matrix(np.array(graph)), return_predecessors=True)
 print(predecessors)
 
-leaves = [['10.0.1.%i' % (i+1) for i in range(0,6) if i not in pred] for pred in predecessors]
+leaves = [['10.0.1.%i' % (i+1) for i in range(len(nodes)) if i not in pred] for pred in predecessors]
+#leaves = [['10.0.1.%i' % (i+1) for i in range(len(nodes))] for j in range(len(nodes))]
 
 with open('udp.ping', 'w') as fd:
     for line in leaves:

@@ -4,7 +4,8 @@ info () {
     echo -e "[INFO][container] $*"
 }
 
-cp myscripts/bird/test.py .
+cp myscripts/bird/*.py .
+ls
 cp /data/inputs/* .
 
 info "Re-compiling bird."
