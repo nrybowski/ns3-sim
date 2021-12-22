@@ -1,0 +1,137 @@
+diff --git a/model/dce-fcntl.h b/model/dce-fcntl.h
+index 6210619..7093530 100644
+--- a/model/dce-fcntl.h
++++ b/model/dce-fcntl.h
+@@ -9,6 +9,7 @@ extern "C" {
+ #endif
+ 
+ int dce_open (const char *path, int flags, ...);
++int dce_openat (int dirfd, const char *path, int flags, ...);
+ int dce_open64 (const char *path, int flags, ...);
+ int dce_creat (const char *path, mode_t mode);
+ int dce_fcntl (int fd, int cmd, ...);
+diff --git a/model/dce-fd.cc b/model/dce-fd.cc
+index 708ef69..6df2132 100644
+--- a/model/dce-fd.cc
++++ b/model/dce-fd.cc
+@@ -135,6 +135,13 @@ int dce_open (const char *path, int flags, ...)
+   return fd;
+ }
+ 
++int dce_openat (int dirfd, const char *path, int flags, ...)
++{
++  va_list vl;
++  va_start (vl, flags);
++  return dce_open(path, flags, vl);
++}
++
+ int dce_creat (const char *path, mode_t mode)
+ {
+   return dce_open (path, O_CREAT | O_WRONLY | O_TRUNC, mode);
+diff --git a/model/dce-poll.cc b/model/dce-poll.cc
+index 0cac665..98f39f0 100644
+--- a/model/dce-poll.cc
++++ b/model/dce-poll.cc
+@@ -15,6 +15,20 @@ NS_LOG_COMPONENT_DEFINE ("DcePollSelect");
+ 
+ using namespace ns3;
+ 
++int dce_ppoll(struct pollfd *fds, nfds_t nfds,
++               const struct timespec *tmo_p, const sigset_t *sigmask)
++{
++   sigset_t origmask;
++   int timeout;
++
++   timeout = (tmo_p == NULL) ? -1 :
++	     (tmo_p->tv_sec * 1000 + tmo_p->tv_nsec / 1000000);
++   pthread_sigmask(SIG_SETMASK, sigmask, &origmask);
++   int ret = dce_poll(fds, nfds, timeout);
++   pthread_sigmask(SIG_SETMASK, &origmask, NULL);
++   return ret;
++}
++
+ int dce_poll (struct pollfd *fds, nfds_t nfds, int timeout)
+ {
+   int count = -1;
+diff --git a/model/dce-poll.h b/model/dce-poll.h
+index 9995d4e..1f63e40 100644
+--- a/model/dce-poll.h
++++ b/model/dce-poll.h
+@@ -8,6 +8,8 @@ extern "C" {
+ #endif
+ 
+ int dce_poll (struct pollfd *fds, nfds_t nfds, int timeout);
++int dce_ppoll(struct pollfd *fds, nfds_t nfds,
++               const struct timespec *tmo_p, const sigset_t *sigmask);
+ int dce___poll_chk (struct pollfd *fds, nfds_t nfds, int timeout, size_t fdslen);
+ 
+ #ifdef __cplusplus
+diff --git a/model/libc-dce.cc b/model/libc-dce.cc
+index f130ec5..7d8ff21 100644
+--- a/model/libc-dce.cc
++++ b/model/libc-dce.cc
+@@ -109,6 +109,9 @@
+ #include <glob.h>
+ #include <malloc.h>
+ 
++#include <sys/prctl.h>
++#include <sys/capability.h>
++
+ extern void __cxa_finalize (void *d);
+ extern int __cxa_atexit (void (*func)(void *), void *arg, void *d);
+ 
+diff --git a/model/libc-ns3.h b/model/libc-ns3.h
+index 3294921..66c2eeb 100644
+--- a/model/libc-ns3.h
++++ b/model/libc-ns3.h
+@@ -52,6 +52,10 @@ NATIVE (dce_global_variables_setup)
+ // Not sure where it is defined and implemented
+ // NATIVE (__xpg_strerror_r)
+ 
++NATIVE (syscall)
++DCE (openat)
++NATIVE (realpath)
++NATIVE (posix_fallocate)
+ 
+ DCE    (__cxa_finalize)
+ DCE    (__cxa_atexit)
+@@ -73,6 +77,13 @@ DCE (jrand48)
+ DCE (srand48)
+ DCE (seed48)
+ DCE (lcong48)
++NATIVE (localtime_r)
++NATIVE (getgrouplist)
++NATIVE (malloc_usable_size)
++NATIVE (fchownat)
++NATIVE (prctl)
++NATIVE (capget)
++NATIVE (capset)
+ NATIVE (drand48_r)
+ NATIVE (erand48_r)
+ NATIVE (lrand48_r)
+@@ -151,7 +162,7 @@ NATIVE (strcasecmp)
+ NATIVE (strncasecmp)
+ NATIVE_EXPLICIT (strcasestr, char *(*)(char *, const char *))
+ DCE_WITH_ALIAS (strdup) // because C++ defines both const and non-const functions
+-DCE (strndup)
++DCE_WITH_ALIAS2 (strndup, __strndup)
+ NATIVE_EXPLICIT (index, char * (*)(char *, int))
+ NATIVE_EXPLICIT (rindex, char * (*)(char *, int))
+ NATIVE_EXPLICIT (strtok, char * (*)(char *, const char *))
+@@ -332,7 +343,7 @@ DCE (fsetpos)
+ DCE (printf)
+ NATIVE (fprintf)
+ NATIVE (sprintf)
+-DCE (asprintf)
++DCE_WITH_ALIAS2 (asprintf, __asprintf_chk)
+ DCE (vasprintf)
+ NATIVE (dprintf)
+ NATIVE (vdprintf)
+@@ -437,6 +448,7 @@ NATIVE (setns)
+ 
+ // POLL.H
+ //DCE (poll)
++DCE (ppoll)
+ DCE_WITH_ALIAS2 (poll, __poll)
+ DCE_EXPLICIT (__poll_chk, int, struct pollfd *, long unsigned int, int, long unsigned int)
+ 

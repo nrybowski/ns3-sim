@@ -1,0 +1,43 @@
+diff --git a/bakeconf.xml b/bakeconf.xml
+index e1e3423..72f2aa1 100644
+--- a/bakeconf.xml
++++ b/bakeconf.xml
+@@ -33,7 +33,7 @@
+     <module name="dce-linux-dev">
+       <source type="git">
+ 		  <attribute name="url" value="git://github.com/direct-code-execution/ns-3-dce"/>
+-        <attribute name="module_directory" value="ns-3-dce"/>
++        <attribute name="revision" value="ecd1a2a16cdb010d23267f13e90d2dd301da9c60"/>
+       </source>
+       <depends_on name="dce-meta-dev" optional="False"/>
+       <depends_on name="net-next-nuse-4.4.0" optional="False"/>
+@@ -41,7 +41,7 @@
+       <depends_on name="lksctp-dev" optional="True"/>
+       <build type="waf" objdir="yes" sourcedir="ns-3-dce">
+         <attribute name="supported_os" value="linux;linux2"/>
+-        <attribute name="configure_arguments" value="configure --prefix=$INSTALLDIR --with-ns3=$INSTALLDIR --with-elf-loader=$INSTALLDIR/lib --with-libaspect=$INSTALLDIR --enable-kernel-stack=$SRCDIR/../net-next-nuse-4.4.0/arch"/>
++        <attribute name="configure_arguments" value="configure --prefix=$INSTALLDIR --with-ns3=$INSTALLDIR --with-elf-loader=$INSTALLDIR/lib --with-libaspect=$INSTALLDIR --enable-kernel-stack=$SRCDIR/../net-next-nuse-4.4.0/arch --disable-python"/>
+       </build>
+     </module>
+ 
+@@ -297,7 +297,7 @@
+ 
+      <module name="iproute2-4.4.0">
+        <source type="git">
+-         <attribute name="url" value="https://git.kernel.org/pub/scm/linux/kernel/git/shemminger/iproute2.git"/>
++         <attribute name="url" value="https://github.com/shemminger/iproute2.git"/>
+          <attribute name="revision" value="v4.4.0"/>
+          <attribute name="module_directory" value="iproute2-4.4.0"/>
+        </source>
+@@ -316,8 +316,9 @@
+      </module>
+ 
+     <module name="ns-3-dev">
+-      <source type="mercurial">
+-        <attribute name="url" value="http://code.nsnam.org/ns-3-dev"/>
++      <source type="git">
++        <attribute name="url" value="https://github.com/nsnam/ns-3-dev-git"/>
++        <attribute name="revision" value="f920aad547585c0f9bb99e4eb72289f20ae09c46"/>
+       </source>
+       <depends_on name="netanim" optional="True"/>
+       <depends_on name="pybindgen" optional="True"/>
