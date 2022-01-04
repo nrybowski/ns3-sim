@@ -4,6 +4,7 @@ string ntf;
 uint32_t runtime = 180;
 bool check = true;
 string failures;
+bool pcap = false;
 
 int main (int argc, char *argv[]) {
     CommandLine cmd;
@@ -11,6 +12,7 @@ int main (int argc, char *argv[]) {
     cmd.AddValue ("check", "Enable generated topology verification", check);
     cmd.AddValue ("runtime", "Total simulation duration", runtime);
     cmd.AddValue ("failures", "Path to the NTF failure file", failures);
+    cmd.AddValue ("pcap", "Register PCAP outputs", pcap);
     cmd.Parse (argc, argv);
 
     TopoHelper topo(ntf, check);
@@ -21,7 +23,7 @@ int main (int argc, char *argv[]) {
     DceApplicationHelper *dce = topo.GetDce();
     ApplicationContainer app;
 
-    string spfs_cmd = "python3 spfs.py " + ntf;
+    string spfs_cmd = "python3.7 spfs.py " + ntf;
     int ret = system(spfs_cmd.c_str());
     NS_ABORT_MSG_IF(!WIFEXITED(ret), "Some error occured during SPFs computation");
     NS_ABORT_MSG_IF(WEXITSTATUS(ret) != 0, "Invalid SPFs computation");
@@ -49,13 +51,27 @@ int main (int argc, char *argv[]) {
 	    dce->ResetArguments();
 	    dce->ParseArguments(token);
 	    app = dce->Install(nodes->Get(iteration));
-	    app.Start(Seconds(85));
+	    app.Start(Seconds(59));
 	}
 	iteration++;
     }
 
     free(buf);
     fclose(spfs);
+
+    /*dce->SetStackSize(1 << 20);
+    dce->SetBinary("ip");
+    dce->ResetArguments();
+    dce->ParseArguments("r");
+    app = dce->Install(nodes->Get(13));
+    app.Start(MilliSeconds(160000));
+
+    dce->SetStackSize(1 << 20);
+    dce->SetBinary("ip");
+    dce->ResetArguments();
+    dce->ParseArguments("r");
+    app = dce->Install(nodes->Get(13));
+    app.Start(MilliSeconds(160500));*/
 
     for (int i = 0; i < nodes->GetN(); i++) {
 	// Launch UDP server on each node
@@ -64,15 +80,22 @@ int main (int argc, char *argv[]) {
     	dce->ResetArguments();
     	app = dce->Install(nodes->Get(i));
     	app.Start(Seconds(30));
-    }
-    
-    for (int i = 0; i < 6; i++) {
+
 	dce->SetStackSize(1 << 20);
     	dce->SetBinary("ip");
     	dce->ResetArguments();
 	dce->ParseArguments("r");
     	app = dce->Install(nodes->Get(i));
-    	app.Start(Seconds(85));
+    	app.Start(Seconds(30));
+    }
+    
+    /*for (int i = 0; i < 6; i++) {
+	dce->SetStackSize(1 << 20);
+    	dce->SetBinary("ip");
+    	dce->ResetArguments();
+	dce->ParseArguments("r");
+    	app = dce->Install(nodes->Get(i));
+    	app.Start(Seconds(55));
     }
 
     for (int i = 0; i < 6; i++) {
@@ -82,17 +105,17 @@ int main (int argc, char *argv[]) {
 	dce->ParseArguments("r");
     	app = dce->Install(nodes->Get(i));
     	app.Start(Seconds(250));
-    }
+    }*/
 
-	dce->SetStackSize(1 << 20);
+	/*dce->SetStackSize(1 << 20);
     	dce->SetBinary("birdcl");
     	dce->ResetArguments();
 	dce->ParseArguments("-s /var/run/bird.ctl show protocols all");
     	app = dce->Install(nodes->Get(1));
-    	app.Start(Seconds(85));
+    	app.Start(Seconds(85));*/
 
 
-    topo.Run(runtime);
+    topo.Run(runtime, pcap);
 
   return 0;
 }

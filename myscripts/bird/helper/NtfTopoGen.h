@@ -62,7 +62,7 @@ class TopoHelper {
 	~TopoHelper();
 	void MakeLinkFail(uint32_t src_id, uint32_t dst_id, uint32_t delay_value, uint32_t delay, uint32_t duration);
 	void MakeLinkFail(uint32_t src_id, uint32_t dst_id, uint32_t delay_value, uint32_t delay);
-	void Run(uint32_t runtime);
+	void Run(uint32_t runtime, bool pcap);
 	void ScheduleFailures(string fail_path);
 	NodeContainer *GetNodes(void);
 	ApplicationContainer *GetApp(void);

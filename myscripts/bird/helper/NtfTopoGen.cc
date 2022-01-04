@@ -3,14 +3,14 @@
 NS_LOG_COMPONENT_DEFINE("NtfTopoHelper");
 
 void LinkFailure(Ptr<PointToPointNetDevice> src, Ptr<PointToPointNetDevice> dst, uint32_t end) {
-    /*Ptr<BlackholeErrorModel> em = CreateObject<BlackholeErrorModel>();
+    Ptr<BlackholeErrorModel> em = CreateObject<BlackholeErrorModel>();
     if (end != 0) {
 	//NS_LOG_FUNCTION(Seconds(end));
 	//Simulator::Schedule(Seconds(end), MakeEvent(BlackholeErrorModel::Disable, em));
 	Simulator::Schedule(Seconds(end), &Disable, em, Seconds(end), 1);
     }
     src->SetReceiveErrorModel(PointerValue(em));
-    dst->SetReceiveErrorModel(PointerValue(em));*/
+    dst->SetReceiveErrorModel(PointerValue(em));
     /*dce.SetStackSize (1 << 20);
     dce.SetBinary ("ip");
     dce.ResetEnvironment();
@@ -109,14 +109,26 @@ vector<pair<Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>>> TopoHelper:
 	ret.push_back(pair<Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>>(src_p2p, dst_p2p));
 	//Simulator::Schedule(callback_delay, callback, src_p2p, dst_p2p);
 	//uint32_t end = callback_duration == 0 ? 0 : callback_duration + callback_delay;
-	//Simulator::Schedule(Seconds(callback_delay), MakeEvent(callback, src_p2p, dst_p2p, callback_duration));
+	Simulator::Schedule(Seconds(callback_delay), MakeEvent(callback, src_p2p, dst_p2p, callback_duration));
 	dce.SetStackSize (1 << 20);
     	dce.SetBinary ("ip");
+	//dce.SetBinary("tc");
+
     	dce.ResetEnvironment();
     	dce.ResetArguments ();
     	dce.ParseArguments("l set dev sim"+to_string(src_p2p->GetIfIndex())+" down");
+	//dce.ParseArguments("qdisc add dev sim"+to_string(src_p2p->GetIfIndex())+" netem rate 0");
     	app = dce.Install (src_nd->GetNode());
-    	app.Start (Seconds (callback_delay));
+    	app.Start (MilliSeconds (callback_delay*1000+15));
+    	//app.Start (Seconds (callback_delay));
+
+	dce.ResetEnvironment();
+    	dce.ResetArguments ();
+    	dce.ParseArguments("l set dev sim"+to_string(dst_p2p->GetIfIndex())+" down");
+	//dce.ParseArguments("qdisc add dev sim"+to_string(dst_p2p->GetIfIndex())+" netem rate 0");
+    	app = dce.Install (dst_nd->GetNode());
+    	app.Start (MilliSeconds (callback_delay*1000+18));
+
     }
 
     return ret;
@@ -143,6 +155,7 @@ void TopoHelper::TopoGen(void) {
 
     nodes.Create(ntf->nNodes());
     dceManager.Install (nodes);
+    //Ptr<Node> sink_node = nodes.Get(nodes.GetN()-1);
 
     // Create the topology
     for (vector<Link>::iterator links = ntf->getLinks(); links != ntf->getLastLink(); links++) {
@@ -176,11 +189,35 @@ void TopoHelper::TopoGen(void) {
 	string ip1 = "10.0.0." + to_string(a++) + "/32",
 	       ip2 = "10.0.0." + to_string(a++) + "/32";
 	LinuxStackHelper::RunIp (n1, Seconds (1), "a add " + ip1 + " peer " + ip2 + " dev sim" + to_string(n1_iface_id));
+	//LinuxStackHelper::RunIp (n1, Seconds (1), "a add " + ip1 + " dev sim" + to_string(n1_iface_id));
 	LinuxStackHelper::RunIp (n1, Seconds (1), "l set dev sim" + to_string(n1_iface_id) + " up");
 	LinuxStackHelper::RunIp (n2, Seconds (1), "a add " + ip2 + " peer " + ip1 + " dev sim" + to_string(n2_iface_id));
+	//LinuxStackHelper::RunIp (n2, Seconds (1), "a add " + ip2 + " dev sim" + to_string(n2_iface_id));
 	LinuxStackHelper::RunIp (n2, Seconds (1), "l set dev sim" + to_string(n2_iface_id) + " up");
 	NS_LOG_FUNCTION(n1->GetId() << n2->GetId() << ip1 << ip2);
     }
+
+    /*Ptr<Node> node;
+    for (uint32_t i=0; i<nodes.GetN(); i++) {
+	node = nodes.Get(i);
+	p2p.SetDeviceAttribute ("DataRate", StringValue ("100Gbps"));
+	p2p.SetChannelAttribute ("Delay", StringValue("5ms"));
+	p2p.Install(node, sink_node);
+	uint32_t node_iface_id = node->GetNDevices()-1,
+		 sink_iface_id = sink_node->GetNDevices()-1;
+	LinuxStackHelper::RunIp (node, Seconds (1), "l set dev sim" + to_string(node_iface_id) + " up");
+	LinuxStackHelper::RunIp (node, Seconds (1), "a add dev sim" + to_string(node_iface_id) + " 10.0.0." + to_string(a++) + "/32");
+	LinuxStackHelper::RunIp (sink_node, Seconds (1), "l set dev sim" + to_string(sink_iface_id) + " up");
+	LinuxStackHelper::RunIp (sink_node, Seconds (1), "a add dev sim" + to_string(sink_iface_id) + " 10.0.0." + to_string(a++) + "/32");
+	
+	//LinuxStackHelper::RunIp (node, Seconds (1), "l add stub type dummy"); // not supported by NS3
+	//LinuxStackHelper::RunIp (node, Seconds (1), "l set dev stub up");
+	//string stub_ip = "10.0.0." + to_string(a++) + "/32";
+	//LinuxStackHelper::RunIp (node, Seconds (1), "a add dev stub " + stub_ip);*/
+	/*for (uint32_t j=0; j<100; j++) {
+		LinuxStackHelper::RunIp (node, Seconds (1), "r add 10." + to_string(i) +"."+to_string(j)+".0/24 via " + stub_ip);
+	}*/
+    //}
 }
 
 DceApplicationHelper *TopoHelper::GetDce(void) {
@@ -198,6 +235,7 @@ NodeContainer *TopoHelper::GetNodes(void) {
 void TopoHelper::ConfigureBird(void) {
 
     NS_LOG_FUNCTION("Configuring BIRD daemons");
+    Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable>();
 
     // Here, each node's ifaces are configured
     // We need to generate the bird config
@@ -230,13 +268,17 @@ void TopoHelper::ConfigureBird(void) {
 	config << "protocol device {}" <<endl;
 	config << "protocol direct {\n\tdisabled;\n\tipv4;\n\tipv6;\n}" <<endl;
 	config << "protocol kernel {\n\tipv4 {\n\t\texport filter {\n\t\t\tkrt_prefsrc=" << lo_addr << ";\n\t\t\taccept;\n\t\t};\n\t};\n}" <<endl;
-	config << "protocol static {\n\tipv4;\n}" <<endl;
+	config << "protocol static {\n\tipv4;\n" <<endl;
+	/*for (uint32_t j=0; j<100; j++) {
+		config << "\t\troute 10." + to_string(node_id+1) + "." + to_string(j)+ ".0/24 via sim" + to_string(n_ifaces-1) +";" << endl;
+	}*/
+	config << "}\n" <<endl;
 
 	// OSPF config
 	map<tuple<uint32_t, uint32_t>, uint32_t>::iterator metric_data;
 	uint32_t metric;
 	//config << "protocol ospf v2 {\n\ttick 50000;\n\tarea 0 {" <<endl;
-	config << "protocol ospf v2 {\n\tecmp no;\n\ttick 50000;\n\tarea 0 {" <<endl;
+	config << "protocol ospf v2 {\n\tecmp no;\n\ttick 100000;\n\tarea 0 {" <<endl;
 	for (uint32_t i=0; i<n_ifaces; i++) {
 	    metric_data = metrics.find(make_tuple(node_id, i));
 	    // 0 will cause invalid BIRD config and segfault during NS3 run
@@ -250,6 +292,9 @@ void TopoHelper::ConfigureBird(void) {
 	config << "\t\t\ttype ptp;" <<endl;
 	//config << "\t\t\tstub yes;" <<endl;
 	config << "\t\t\thello 5;\n\t\t};" <<endl;
+
+	/*config << "\t\tinterface \"sim\""+to_string(n_ifaces-1)+" {" << endl;
+	config << "\t\t\tstub yes;\n\t\t};" <<endl;*/
 
 	config << "\t};\n}" << endl;
 
@@ -267,7 +312,7 @@ void TopoHelper::ConfigureBird(void) {
 	dce.ResetArguments ();
 	dce.ParseArguments("-c /etc/bird.conf -s /var/run/bird.ctl");
 	app = dce.Install (*node);
-	app.Start (Seconds (5+0.5*node_id));
+	app.Start (MilliSeconds (5000+(500*node_id)+rand->GetInteger()%100));
     }
 
     if (check) {
@@ -315,8 +360,9 @@ void TopoHelper::ScheduleFailures(string fail_path) {
 		(*links).failure_start, (*links).failure_duration);
 }
 
-void TopoHelper::Run(uint32_t runtime) {
-    p2p.EnablePcapAll(filename, true);
+void TopoHelper::Run(uint32_t runtime, bool pcap) {
+    if (pcap)
+	p2p.EnablePcapAll(filename, true);
     Simulator::Stop (Seconds (runtime));
     //AnimationInterface anim (filename + ".xml");
     NS_LOG_FUNCTION("Starting simulation.");

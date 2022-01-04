@@ -52,25 +52,37 @@ def local_gaps(data: str):
     for line in data.split('\n')[:-1]:
         src, timestamp, received = line.split(', ')
         timestamp = int(timestamp)
+        received = int(received)
         try:
+            # low == 0: init phase, previous != 0 => candidate search phase
             if (control[src]['low'] == 0 or timestamp - control[src]['low'] == dx) and control[src]['previous'] == 0:
                 control[src]['low'] = timestamp
+                control[src]['low_received'] = received
             else:
                 if control[src]['previous'] != 0:
+                    # we are in candidate search phase
                     if timestamp - control[src]['previous'] == dx:
+                        # correct timestamp succession found
                         if control[src]['candidate'] == 0:
+                            # no candidate already set => candidate is the previous timestamp
                             control[src]['candidate'] = control[src]['previous']
+                            control[src]['high_received'] = control[src]['previous_received']
                         else:
+                            # we found a correct timestamp succession and we already have a candidate, validation phase
                             #print(timestamp, control[src]['previous'])
                             if control[src]['validate'] == 0:
+                                # validation phase finished, candidate is the higher bound
+                                # gap is candidate - low
                                 tmp = [
                                     (int(src.split('.')[-1]) - 1),
                                     control[src]['low'],
-                                    control[src]['candidate'],
-                                    (control[src]['candidate'] - control[src]['low'])/1000,
+                                    control[src]['high_received'],
+                                    (control[src]['high_received'] - control[src]['low_received'])/1000,
+                                    #control[src]['candidate'],
+                                    #(control[src]['candidate'] - control[src]['low'])/1000,
                                     timestamp
                                 ]
-                                #print('%i %f %f %i (reset on %i)' % tuple(tmp))
+                                print('%i %f %f %i (reset on %i)' % tuple(tmp))
                                 gaps.append(tmp)
                                 """
                                 print('%i %f %f %i (reset on %i)' % (
@@ -81,16 +93,24 @@ def local_gaps(data: str):
                                     timestamp)
                                 )
                                 """
+                                # reset all state
                                 control[src]['candidate'] = 0
+                                control[src]['high_received'] = 0
                                 control[src]['previous'] = 0
                                 control[src]['validate'] = VALIDATE
                                 control[src]['low'] = timestamp
+                                control[src]['low_received'] = received
                                 continue
                             else:
                                 control[src]['validate'] -= 1
                     else:
+                        # an incorrect timestamp succession is found, reset the candidate
                         control[src]['candidate'] = 0
+                        control[src]['high_received'] = 0
+                        print('%s reset candi %i %i' % (src, timestamp, control[src]['previous']))
+                # candidate search phase, low is the lower bound and previous takes its role
                 control[src]['previous'] = timestamp
+                control[src]['previous_received'] = received
         except KeyError:
             control[src] = {'low': timestamp, 'previous': 0, 'candidate': 0, 'validate': VALIDATE}
     a = {}
@@ -120,7 +140,7 @@ def local_gaps(data: str):
 def converge_time(base: str):
     all_gaps = {}
     for directory in os.listdir(base):
-    #directory = 'files-4'
+            #directory = 'files-4'
         with open('%s/%s/var/log/udp_ping.log' % (base, directory), 'r') as fd:
             print(directory)
             for key, value in local_gaps(fd.read()).items():
@@ -143,19 +163,25 @@ if __name__ == '__main__':
     import sys
     data = {}
     for base in os.listdir(sys.argv[1]):
+        a = os.path.join(sys.argv[1], base)
+        if not os.path.isdir(a):
+            continue
         print(base)
         basedir = '%s/%s/files' % (sys.argv[1], base)
         ret = converge_time(basedir)
-        data[base] = ret[60]
+        try:
+            data[base] = ret[60]
+        except KeyError:
+            print('No gap')
     print(data)
     x = [x[1] for x in sorted(data.items(), key=lambda x: x[1])]
 
     import matplotlib.pyplot as plt
-    plt.plot(x, 'bo-')
+    plt.plot(x, 'bx')
     plt.ylabel('Convergence Time [ms]')
     plt.xlabel('Link Failures')
     plt.title('Sorted convergence time for GEANT links')
-    plt.save('plot.png')
+    plt.savefig('plot.png', dpi=600)
 
     """
 

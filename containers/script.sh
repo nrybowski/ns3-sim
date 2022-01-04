@@ -5,7 +5,6 @@ info () {
 }
 
 cp myscripts/bird/*.py .
-ls
 cp /data/inputs/* .
 
 info "Re-compiling bird."

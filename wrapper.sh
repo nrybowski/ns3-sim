@@ -6,33 +6,44 @@ info() {
 }
 
 usage () {
-    echo -e "Usage: ${0} -n|--ntf <input> [ OPTIONS ]
+    echo -e "Usage: ${0} -n|--ntf <input> -r|--runtime <input> [ OPTIONS ]
     where OPTIONS := { 
-	-f|--failures <input>
-	-s|--single
+	-f|--failures <input> - NTF file specifying the link failures to simulate
+	-s|--single - Simulate the failure of each specified link one at a time. Used with -f.
+	-p|--pcap - Register PCAP traces for each node
     }"
 }
 
 NTF=""
 SINGLE=0
+RUNTIME=0
+PCAP=0
 
 # Parse CLI options
 while [[ ${#} -gt 0 ]]
 do
 	case "$1" in
-	    -n|--ntf)
+	-n|--ntf)
 	    NTF="${2}"
 	    shift 2
 	    ;;
-	    -f|--failures)
+	-f|--failures)
 	    FAILURES="${2}"
 	    shift 2
 	    ;;
-	    -s|--single)
+	-s|--single)
 	    SINGLE=1
 	    shift
 	    ;;
-	    *)
+	-rt|--runtime)
+	    RUNTIME=${2}
+	    shift 2
+	    ;;
+	-p|--pcap)
+	    PCAP=1
+	    shift
+	    ;;
+	*)
 	    usage
 	    exit 1
 	    shift
@@ -40,13 +51,17 @@ do
 	esac
 done
 
-[[ "${NTF}" == "" ]] && usage && exit 1;
+[[ "${NTF}" == "" || ${RUNTIME} == 0 ]] && usage && exit 1;
 
 run_ns3() {
     local ntf="${1}"
     local failures="${2}"
 
     info "Starting NS3 container. Giving hand to NS3."
+    local cli="--ntf=${ntf}.ntf --check=true --runtime=${RUNTIME}"
+    [[ ${failures} != "" ]] && cli="${cli} --failures=${failures}.ntf"
+    [[ ${PCAP} -eq 1 ]] && cli="${cli} --pcap=true"
+
     docker run \
     	--rm\
 	-v ${PWD}/output:/data/output\
@@ -54,10 +69,32 @@ run_ns3() {
 	-v ${PWD}/myscripts:/home/ns3dce/dce-linux-dev/source/dce-linux-dev/myscripts\
 	-v ${PWD}/inputs:/data/inputs\
 	-v ${PWD}/udp_ping:/data/my_exe\
+	-e BIRD_SPT_DELAY=${SPT_DELAY}\
 	-e NS_LOG="NtfTopoHelper=all:BlackholeErrorModel=all"\
 	-e DCE_PATH="/data/bird:/data/my_exe:${DCE_PATH}"\
-	ns3-bird "--ntf=${ntf}.ntf --check=true --runtime=65 $([[ ${failures} != "" ]] && echo "--failures=${failures}.ntf")"
+	ns3-bird "${cli}"
+	#ns3-bird "--ntf=${ntf}.ntf --check=true --runtime=${RUNTIME} $([[ ${failures} != "" ]] && echo "--failures=${failures}.ntf") $([[ ${PCAP} -eq 1 ]] && echo "--pcap=true")"
     info "NS3 finished."
+}
+
+save_output() {
+    local dest=${1}
+
+    if [[ -d "${dest}" ]]
+    then
+	info "${dest} already exists. Do you want to replace its content? [y/N]"
+	read erase
+	if [[ "${erase}" == "y" ]]
+	then
+	    rm -r "${dest}"/*
+	    mv output/* "${dest}"
+	else
+	    info "Skip save."
+	fi
+    else
+	mkdir -pv "${dest}"
+	mv output/* "${dest}"
+    fi
 }
 
 post_process() {
@@ -80,9 +117,7 @@ simulate_line() {
 
     echo "${line}" > "${tmp}"
     run_ns3 "${NTF}" $(echo "${tmp}" | sed -E "s/^inputs\///g;s/\.ntf//g")
-    local dest="saves/${FAILURES}-single/${count}" 
-    mkdir -pv "${dest}"
-    mv output/* "${dest}"
+    save_output "saves/${FAILURES}-single/${count}" 
     rm "${tmp}"
 }
 
@@ -93,17 +128,14 @@ info "Re-building NS3 containers."
 if [[ ${SINGLE} -eq 1 && "${FAILURES}" != "" ]]
 then
     COUNT=0
-    while read line
+    while read LINE <&4
     do
-	simulate_line "${line}" "${COUNT}"
+	simulate_line "${LINE}" "${COUNT}"
 	((COUNT=COUNT+1))
-    done < "inputs/${FAILURES}.ntf"
+    done 4< "inputs/${FAILURES}.ntf"
 else
     run_ns3 "${NTF}" "${FAILURES}"
-    DEST="saves/${FAILURES}" 
-    mkdir -pv "${DEST}"
-    mv output/* "${DEST}"
-
+    save_output "saves/${FAILURES}" 
     #post_process "${NTF}"
 fi
 
