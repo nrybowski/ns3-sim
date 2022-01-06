@@ -5,6 +5,7 @@ uint32_t runtime = 180;
 bool check = true;
 string failures;
 bool pcap = false;
+uint32_t spt_delay = 100;
 
 int main (int argc, char *argv[]) {
     CommandLine cmd;
@@ -13,9 +14,11 @@ int main (int argc, char *argv[]) {
     cmd.AddValue ("runtime", "Total simulation duration", runtime);
     cmd.AddValue ("failures", "Path to the NTF failure file", failures);
     cmd.AddValue ("pcap", "Register PCAP outputs", pcap);
+    cmd.AddValue ("spt_delay", "SPT computation delay [ms]", spt_delay);
     cmd.Parse (argc, argv);
+    spt_delay *= 1000;
 
-    TopoHelper topo(ntf, check);
+    TopoHelper topo(ntf, check, spt_delay);
     if (strcmp(failures.c_str(), "") != 0)
 	topo.ScheduleFailures(failures);
 

@@ -27,7 +27,7 @@ void LinkFailure(Ptr<PointToPointNetDevice> src, Ptr<PointToPointNetDevice> dst)
     LinkFailure(src, dst, 0);
 }
 
-TopoHelper::TopoHelper(string ntf_file, bool check) {
+TopoHelper::TopoHelper(string ntf_file, bool check, uint32_t spt_delay) {
     a = 1;
     this->ntf_file = ntf_file;
     this->check = check;
@@ -45,8 +45,9 @@ TopoHelper::TopoHelper(string ntf_file, bool check) {
     TopoGen();
 
     // TODO: switch case on daemon kind
+    // TODO add check var in args
     // Configure and schedule BIRD daemon on each topology's node.
-    ConfigureBird();
+    ConfigureBird(spt_delay);
 
     NS_LOG_FUNCTION("Topology is ready to use");
 }
@@ -232,7 +233,7 @@ NodeContainer *TopoHelper::GetNodes(void) {
     return &nodes;
 }
 
-void TopoHelper::ConfigureBird(void) {
+void TopoHelper::ConfigureBird(uint32_t spt_delay) {
 
     NS_LOG_FUNCTION("Configuring BIRD daemons");
     Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable>();
@@ -278,7 +279,7 @@ void TopoHelper::ConfigureBird(void) {
 	map<tuple<uint32_t, uint32_t>, uint32_t>::iterator metric_data;
 	uint32_t metric;
 	//config << "protocol ospf v2 {\n\ttick 50000;\n\tarea 0 {" <<endl;
-	config << "protocol ospf v2 {\n\tecmp no;\n\ttick 100000;\n\tarea 0 {" <<endl;
+	config << "protocol ospf v2 {\n\tecmp no;\n\ttick " << spt_delay << ";\n\tarea 0 {" <<endl;
 	for (uint32_t i=0; i<n_ifaces; i++) {
 	    metric_data = metrics.find(make_tuple(node_id, i));
 	    // 0 will cause invalid BIRD config and segfault during NS3 run

@@ -25,9 +25,10 @@ macro_rules! error {
 
 fn run_ns3(opts: Cli, pwd: String) {
     let mut cli: String = format!(
-        "--ntf={ntf} --check=true --runtime={runtime}", 
+        "--ntf={ntf} --check=true --runtime={runtime} --spt_delay={spt}", 
         ntf=opts.ntf,
-        runtime=opts.runtime
+        runtime=opts.runtime,
+        spt=opts.spt
     );
     if !opts.failures.is_none() {
         cli = format!("{cli} --failures={failures}", cli=cli, failures=opts.failures.unwrap());
@@ -52,8 +53,6 @@ fn run_ns3(opts: Cli, pwd: String) {
                         .arg(format!("{pwd}/inputs:/data/inputs", pwd=pwd))
                         .arg("-v")
                         .arg(format!("{pwd}/udp_ping:/data/my_exe", pwd=pwd))
-                        .arg("-e")
-                        .arg("BIRD_SPT_DELAY=100") // TODO
                         .arg("-e")
                         .arg("NS_LOG=NtfTopoHelper=all:BlackholeErrorModel=all")
                         .arg("-e")
@@ -113,7 +112,9 @@ struct Cli {
     #[structopt(short, long)]
     pcap: Option<bool>,
     #[structopt(skip)]
-    output: String
+    output: String,
+    #[structopt(long, default_value="100")]
+    spt: u32
 }
 
 fn main() {
