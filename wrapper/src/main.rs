@@ -121,13 +121,18 @@ fn main() {
     let pwd: String = env::var("PWD").unwrap();
     opt.output = format!("{pwd}/output/{ntf}", pwd=pwd, ntf=opt.ntf);
 
-    let procs = 4; // TODO
+    let nproc_cmd = Command::new("nproc")
+                        .output()
+                        .expect("Can't execute <nproc>");
+    let procs = match String::from_utf8(nproc_cmd.stdout).expect("Can't parse <nproc> output").split("\n").next() {
+        Some(nproc) => nproc.parse().expect("Can't parse <nproc> into isize"),
+        None => Err(()).expect("Integer not found in cmdline stdout")
+    };
 
     let single = match opt.single {
         Some(value) => value,
         None => false
     };
-
 
     if single && !opt.failures.is_none() {
         let new_opts = opt.clone();
