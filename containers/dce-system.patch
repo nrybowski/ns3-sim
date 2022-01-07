@@ -1,0 +1,54 @@
+diff --git a/model/dce-stdlib.cc b/model/dce-stdlib.cc
+index 162c512..0db68ca 100644
+--- a/model/dce-stdlib.cc
++++ b/model/dce-stdlib.cc
+@@ -9,11 +9,25 @@
+ #include <errno.h>
+ #include <limits.h>
+ 
++#include <ns3/node.h>
++#include <ns3/node-list.h>
++
++#include <linux-stack-helper.h>
++
+ 
+ NS_LOG_COMPONENT_DEFINE ("DceStdlib");
+ 
+ using namespace ns3;
+ 
++int dce_system(const char *command) {
++  if (strlen(command) > 3 && command[0] == 'i' && command[1] == 'p' && command[2] == ' ') {
++  	for(NodeList::Iterator nodes = NodeList::Begin(); nodes != NodeList::End(); nodes++)
++    		LinuxStackHelper::RunIp(*nodes, Seconds(0), "r");
++  	return 0;
++  } else
++  	return system(command);
++}
++
+ long int dce_strtol (const char *nptr, char **endptr, int base)
+ {
+   Thread *current = Current ();
+diff --git a/model/dce-stdlib.h b/model/dce-stdlib.h
+index ab30172..b035cf3 100644
+--- a/model/dce-stdlib.h
++++ b/model/dce-stdlib.h
+@@ -8,6 +8,7 @@
+ extern "C" {
+ #endif
+ 
++int dce_system(const char *command);
+ long int dce_strtol (const char *nptr, char **endptr, int base);
+ long long int dce_strtoll (const char *nptr, char **endptr, int base);
+ long unsigned int dce_strtoul (const char *nptr, char **endptr, int base);
+diff --git a/model/libc-ns3.h b/model/libc-ns3.h
+index 3294921..a702f3e 100644
+--- a/model/libc-ns3.h
++++ b/model/libc-ns3.h
+@@ -51,6 +51,7 @@ NATIVE (dce_global_variables_setup)
+ 
+ // Not sure where it is defined and implemented
+ // NATIVE (__xpg_strerror_r)
++DCE(system)
+ 
+ 
+ DCE    (__cxa_finalize)

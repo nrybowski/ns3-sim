@@ -44,5 +44,8 @@ RUN rm /usr/bin/python3
 RUN ln -s /usr/local/bin/python3.7 /usr/bin/python3
 USER ns3dce
 
+COPY dce-system.patch .
+RUN git apply --whitespace=warn < dce-system.patch
+
 ENTRYPOINT ["./script.sh"]
 CMD [""]
