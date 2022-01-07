@@ -26,7 +26,7 @@ int main (int argc, char *argv[]) {
     DceApplicationHelper *dce = topo.GetDce();
     ApplicationContainer app;
 
-    string spfs_cmd = "python3.7 spfs.py " + ntf;
+    /*string spfs_cmd = "python3.7 spfs.py " + ntf;
     int ret = system(spfs_cmd.c_str());
     NS_ABORT_MSG_IF(!WIFEXITED(ret), "Some error occured during SPFs computation");
     NS_ABORT_MSG_IF(WEXITSTATUS(ret) != 0, "Invalid SPFs computation");
@@ -60,7 +60,7 @@ int main (int argc, char *argv[]) {
     }
 
     free(buf);
-    fclose(spfs);
+    fclose(spfs);*/
 
     /*dce->SetStackSize(1 << 20);
     dce->SetBinary("ip");
@@ -76,7 +76,7 @@ int main (int argc, char *argv[]) {
     app = dce->Install(nodes->Get(13));
     app.Start(MilliSeconds(160500));*/
 
-    for (int i = 0; i < nodes->GetN(); i++) {
+    /*for (int i = 0; i < nodes->GetN(); i++) {
 	// Launch UDP server on each node
 	dce->SetStackSize(1 << 20);
     	dce->SetBinary("udp_server");
@@ -90,7 +90,7 @@ int main (int argc, char *argv[]) {
 	dce->ParseArguments("r");
     	app = dce->Install(nodes->Get(i));
     	app.Start(Seconds(30));
-    }
+    }*/
     
     /*for (int i = 0; i < 6; i++) {
 	dce->SetStackSize(1 << 20);
