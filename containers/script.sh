@@ -17,8 +17,8 @@ then
        cd "${CURDIR}"
 fi
 make -C /data/bird -j $(nproc)
-rm /data/my_exe/udp_client /data/my_exe/udp_server
-make -C /data/my_exe -j $(nproc)
+#rm /data/my_exe/udp_client /data/my_exe/udp_server
+#make -C /data/my_exe -j $(nproc)
 
 info "Running NS3."
 time ./waf --run dce-ntf-bird --command-template "%s ${1}"
