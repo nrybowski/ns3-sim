@@ -1,0 +1,125 @@
+diff --git a/nest/bird.h b/nest/bird.h
+index 55712abe..de417c40 100644
+--- a/nest/bird.h
++++ b/nest/bird.h
+@@ -14,4 +14,17 @@
+ #include "lib/ip.h"
+ #include "lib/net.h"
+ 
++#ifdef NS3
++#include <unistd.h>
++#include <stdlib.h>
++#include "conf/conf.h"
++#define UDELAY(duration)\
++    do { \
++	usleep(duration);\
++	log(L_TRACE "Slept for %ius", duration);\
++    } while (0)
++#else
++#define UDELAY(duration)
++#endif
++
+ #endif
+diff --git a/nest/rt-fib.c b/nest/rt-fib.c
+index a7f70371..652f383e 100644
+--- a/nest/rt-fib.c
++++ b/nest/rt-fib.c
+@@ -302,6 +302,7 @@ fib_insert(struct fib *f, const net_addr *a, struct fib_node *e)
+   case NET_MPLS: FIB_INSERT(f, a, e, mpls); return;
+   default: bug("invalid type");
+   }
++  //UDELAY(100);
+ }
+ 
+ 
+diff --git a/nest/rt-table.c b/nest/rt-table.c
+index 390b3277..3511c8b5 100644
+--- a/nest/rt-table.c
++++ b/nest/rt-table.c
+@@ -1008,6 +1008,8 @@ rte_announce(rtable *tab, uint type, net *net, rte *new, rte *old,
+       break;
+     }
+   }
++  //log(L_TRACE "FIB update finished");
++  //system("ip r");
+ }
+ 
+ static inline int
+@@ -1346,6 +1348,8 @@ rte_recalculate(struct channel *c, net *net, rte *new, struct rte_src *src)
+ 	}
+     }
+ 
++  UDELAY(100); // FIB update
++
+   /* Propagate the route change */
+   rte_announce(table, RA_UNDEF, net, new, old, net->routes, old_best);
+ 
+diff --git a/proto/ospf/lsupd.c b/proto/ospf/lsupd.c
+index 54c4a069..5799fe26 100644
+--- a/proto/ospf/lsupd.c
++++ b/proto/ospf/lsupd.c
+@@ -491,6 +491,7 @@ ospf_receive_lsupd(struct ospf_packet *pkt, struct ospf_iface *ifa,
+   }
+ 
+   OSPF_PACKET(ospf_dump_lsupd, pkt, "LSUPD packet received from nbr %R on %s", n->rid, ifa->ifname);
++  UDELAY(2000); // lsp_process_delay
+ 
+   if (n->state < NEIGHBOR_EXCHANGE)
+   {
+diff --git a/proto/ospf/ospf.c b/proto/ospf/ospf.c
+index ba8c2e2b..6cbbff8d 100644
+--- a/proto/ospf/ospf.c
++++ b/proto/ospf/ospf.c
+@@ -296,7 +296,7 @@ ospf_start(struct proto *P)
+   p->gr_mode = c->gr_mode;
+   p->gr_time = c->gr_time;
+   p->tick = c->tick;
+-  p->disp_timer = tm_new_init(P->pool, ospf_disp, p, p->tick S, 0);
++  p->disp_timer = tm_new_init(P->pool, ospf_disp, p, p->tick, 0);
+   tm_start(p->disp_timer, 100 MS);
+   p->lsab_size = 256;
+   p->lsab_used = 0;
+diff --git a/proto/ospf/rt.c b/proto/ospf/rt.c
+index faee49dc..455e8d79 100644
+--- a/proto/ospf/rt.c
++++ b/proto/ospf/rt.c
+@@ -1693,6 +1693,7 @@ ospf_rt_spf(struct ospf_proto *p)
+     return;
+ 
+   OSPF_TRACE(D_EVENTS, "Starting routing table calculation");
++  UDELAY(2000); // spf_computation
+ 
+   /* 16. (1) */
+   ospf_rt_reset(p);
+@@ -2129,6 +2130,9 @@ again2:
+   WALK_SLIST(en, p->lsal)
+     if (en->mode == LSA_M_RTCALC_STALE)
+       ospf_flush_lsa(p, en);
++
++  log(L_TRACE "FIB update finished");
++  system("ip r");
+ }
+ 
+ 
+diff --git a/sysdep/unix/io.c b/sysdep/unix/io.c
+index 3d67d0a7..4644b60c 100644
+--- a/sysdep/unix/io.c
++++ b/sysdep/unix/io.c
+@@ -169,6 +169,7 @@ times_update_real_time(struct timeloop *loop)
+     die("clock_gettime: %m");
+ 
+   loop->real_time = ts.tv_sec S + ts.tv_nsec NS;
++  //log(L_INFO "times_update_real_time %i", loop->real_time);
+ }
+ 
+ 
+@@ -1639,6 +1640,9 @@ sk_maybe_write(sock *s)
+ {
+   int e;
+ 
++  //UDELAY(rand()%10000);
++  UDELAY(5);
++
+   switch (s->type)
+   {
+   case SK_TCP:
