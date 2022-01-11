@@ -11,6 +11,12 @@ fibs = {
 }
 """
 
+def ip_into_rid(ip: str) -> int:
+    return int(ip.split('.')[-1]) - 1
+
+def parse_route(route: list) -> list:
+    return [ip_into_rid(nexthop) for nexthop in route]
+
 def collect_fibs(pwd, fibs, reverse):
     for entry in os.listdir(pwd):
         if entry.isdigit():
@@ -29,15 +35,27 @@ def collect_fibs(pwd, fibs, reverse):
                 raw_fib = [[j for j in i.split(' ') if j != ''] for i in raw_fib.split('\n') if i != '']
                 neighs = {}
                 routes = {}
+                current = None
                 for entry in raw_fib:
                     if entry[4] == 'kernel':
                         # neighbors
                         neighs[entry[0]] = entry[-1]
+                        current = None
                     elif entry[1] == 'dev' and entry[2] == 'lo':
                         # lo address == node id
                         node_id = entry[0]
-                    elif entry[1] == 'via':
-                        routes[entry[0]] = entry[2]
+                        current = None
+                    elif entry[1] == 'via' and entry[0] != '\tnexthop':
+                        routes[entry[0]] = [(entry[2], True)]
+                        current = None
+                    elif entry[1] == 'via' and entry[0] == '\tnexthop':
+                        fib_entry = (entry[2], not (entry[-1] == 'linkdown' and entry[-2] == 'dead'))
+                        try:
+                            routes[current].append(fib_entry)
+                        except KeyError:
+                            routes[current] = [fib_entry]
+                    elif entry[1] == 'proto' and entry[2] == 'bird':
+                        current = entry[0]
                     else:
                         print("Unexpected entry", entry)
                 try:
@@ -47,30 +65,58 @@ def collect_fibs(pwd, fibs, reverse):
                         reverse[b] = node_id
                 except KeyError:
                     fibs[timestamp] = {node_id: {'neighs': neighs, 'routes': routes}}
-
     return (fibs, reverse)
 
-def explore(src, dst, fibs, reverse, route) -> ():
-    try:
-        nexthop_linklocal = fibs[src]['routes'][dst]
-        #print("nexthop_ll", nexthop_linklocal)
-    except KeyError:
-        return (None, "<%s> not found in <%s> fib: no route to host" % (dst, src))
+def explore(src: str, dst: str, fibs: dict, reverse: dict) -> list:
+    from copy import deepcopy
 
-    nexthop = reverse[nexthop_linklocal]
-    #print("nexthop", nexthop)
+    def loop(src: str, dst: str, fibs: dict, reverse: dict, route: list, collect) -> list:
+        route.append(src)
+        if src == dst:
+            collect.append(parse_route(route))
+            return
 
-    if nexthop in route:
-        return (None, ("loop", nexthop, route))
+        try:
+            nexthop_linklocal = fibs[src]['routes'][dst]
+        except KeyError:
+            collect.append(("%i not found in <%s> fib: %s" % (ip_into_rid(dst), ip_into_rid(src), fibs[src]['routes'])))
+            return
 
-    route.append(nexthop)
+        #print(nexthop_linklocal)
 
-    if nexthop == dst:
-        return (route,"")
-    else:
-        return explore(nexthop, dst, fibs, reverse, route)
+        for (candidate, status) in nexthop_linklocal:
+            if not status:
+                print('linkdown in fib')
+                continue
+
+            try:
+                nexthop = reverse[candidate]
+            except KeyError as e:
+                # not expected
+                print(e)
+                continue
+
+            #print(ip_into_rid(nexthop))
+            if nexthop in route:
+                collect.append(("loop", ip_into_rid(nexthop), parse_route(route)))
+                continue
+
+            #route.append(nexthop)
+            loop(nexthop, dst, fibs, reverse, deepcopy(route), collect)
+
+    collect = []
+    loop(src, dst, fibs, reverse, [], collect)
+    print("%i -> %i" % (ip_into_rid(src), ip_into_rid(dst)), collect)
+    return collect
 
 def evaluate_convergence(pwd): 
+    def instant_of_convergence(raw_data):
+        data = [(t, raw_data[t]) for t in sorted(raw_data, reverse=True)]
+        for idx, (timetsamp, value) in enumerate(data):
+            if not value:
+                return data[idx-1][0]
+        return data[-1][0] if data[-1][1] else -1
+
     print('Evaluate convergence for %s' % pwd)
     fibs = {}
     reverse = {}
@@ -83,7 +129,9 @@ def evaluate_convergence(pwd):
     fibs = {timestamp: fibs[timestamp] for timestamp in sorted(fibs.keys())}
 
     for timestamp, data in fibs.items():
+        print(timestamp)
         correct = 0
+        incorrect = 0
         for i in range(1, n_nodes+1):
             for j in range(1, n_nodes+1):
                 if i == j:
@@ -91,21 +139,33 @@ def evaluate_convergence(pwd):
                 src = '10.0.1.%i' %i
                 dst = '10.0.1.%i' %j
 
-                route, reason = explore(src, dst, data, reverse, [src])
+                routes = explore(src, dst, data, reverse)
+                valid = len([item for item in routes if type(item) == list]) == len(routes)
+                print('valid', valid)
                 
                 #print(route if route is not None else "No route from <%s> to <%s>. %s" % (src, dst, reason))
-                if route is not None:
+                if valid:
                     correct += 1
+                else:
+                    incorrect += 1
+                #print(route if route is not None else "No route %i -> %i. %s" % (ip_into_rid(src), ip_into_rid(dst), reason))
+            print()
 
         result[timestamp] = correct == n_nodes*(n_nodes-1)
-    print(result, '\n')
+        if correct + incorrect != n_nodes*(n_nodes-1):
+            print('ERROR: cumulated sum of correct and incorrect routes does not correspond total number of expected routes')
+            return None
 
-pwd = "output/house.ntf"
+    print(result)
+    ioc = instant_of_convergence(result)
+    print(ioc, '\n')
+    rid = pwd.split('/')[2]
+    return (rid, ioc)
+
+import sys
+pwd = "output/%s" % sys.argv[1]
+results = {}
 for failure in os.listdir(pwd):
-    evaluate_convergence("%s/%s/files" % (pwd, failure))
-
-
-
-
-
-
+    t, v = evaluate_convergence("%s/%s/files" % (pwd, failure))
+    results[t] = (v * 1000 - 60000000) / 1000
+print(results)
