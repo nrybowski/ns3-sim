@@ -279,7 +279,7 @@ void TopoHelper::ConfigureBird(uint32_t spt_delay) {
 	map<tuple<uint32_t, uint32_t>, uint32_t>::iterator metric_data;
 	uint32_t metric;
 	//config << "protocol ospf v2 {\n\ttick 50000;\n\tarea 0 {" <<endl;
-	config << "protocol ospf v2 {\n\tecmp no;\n\ttick " << spt_delay << ";\n\tarea 0 {" <<endl;
+	config << "protocol ospf v2 {\n\tecmp yes;\n\ttick " << spt_delay << ";\n\tarea 0 {" <<endl;
 	for (uint32_t i=0; i<n_ifaces; i++) {
 	    metric_data = metrics.find(make_tuple(node_id, i));
 	    // 0 will cause invalid BIRD config and segfault during NS3 run
