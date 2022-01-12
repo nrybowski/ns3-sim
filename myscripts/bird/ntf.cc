@@ -76,21 +76,21 @@ int main (int argc, char *argv[]) {
     app = dce->Install(nodes->Get(13));
     app.Start(MilliSeconds(160500));*/
 
-    /*for (int i = 0; i < nodes->GetN(); i++) {
+    for (int i = 0; i < nodes->GetN(); i++) {
 	// Launch UDP server on each node
-	dce->SetStackSize(1 << 20);
-    	dce->SetBinary("udp_server");
-    	dce->ResetArguments();
-    	app = dce->Install(nodes->Get(i));
-    	app.Start(Seconds(30));
+	//dce->SetStackSize(1 << 20);
+    	//dce->SetBinary("udp_server");
+    	//dce->ResetArguments();
+    	//app = dce->Install(nodes->Get(i));
+    	//app.Start(Seconds(30));
 
 	dce->SetStackSize(1 << 20);
     	dce->SetBinary("ip");
     	dce->ResetArguments();
 	dce->ParseArguments("r");
     	app = dce->Install(nodes->Get(i));
-    	app.Start(Seconds(30));
-    }*/
+    	app.Start(Seconds(60));
+    }
     
     /*for (int i = 0; i < 6; i++) {
 	dce->SetStackSize(1 << 20);
