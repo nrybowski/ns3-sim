@@ -13,7 +13,14 @@ if [[ ! -f /data/bird/Makefile ]]
 then
        cd /data/bird
        autoreconf
-       CFLAGS="-fPIC -D NS3" LDFLAGS="-rdynamic -pie" ./configure --disable-client
+       CFLAGS="-fPIC -D NS3 \
+	       -D LSP_PD_MIN=2000\
+	       -D LSP_PD_MAX=4000\
+	       -D SPT_PD_MIN=2000\
+	       -D SPT_PD_MAX=4000\
+	       -D P_PD_MIN=100\
+	       -D P_PD_MAX=110\
+       " LDFLAGS="-rdynamic -pie" ./configure --disable-client
        cd "${CURDIR}"
 fi
 make -C /data/bird -j $(nproc)
@@ -21,7 +28,7 @@ make -C /data/bird -j $(nproc)
 #make -C /data/my_exe -j $(nproc)
 
 info "Running NS3."
-time ./waf --run dce-ntf-bird --command-template "%s ${1}"
+time ./waf --disable-tests --disable-examples --run dce-ntf-bird --command-template "%s ${1}"
 
 info "Moving pcap traces."
 if [[ ! -d /data/output/traces ]]; then mkdir /data/output/traces; fi

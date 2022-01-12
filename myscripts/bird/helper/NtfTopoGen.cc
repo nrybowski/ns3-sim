@@ -237,6 +237,8 @@ void TopoHelper::ConfigureBird(uint32_t spt_delay) {
 
     NS_LOG_FUNCTION("Configuring BIRD daemons");
     Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable>();
+    rand->SetAttribute("Min", DoubleValue(0.0));
+    rand->SetAttribute("Max", DoubleValue(10.0));
 
     // Here, each node's ifaces are configured
     // We need to generate the bird config
@@ -313,7 +315,9 @@ void TopoHelper::ConfigureBird(uint32_t spt_delay) {
 	dce.ResetArguments ();
 	dce.ParseArguments("-c /etc/bird.conf -s /var/run/bird.ctl");
 	app = dce.Install (*node);
-	app.Start (MilliSeconds (5000+(500*node_id)+rand->GetInteger()%100));
+	int delay = rand->GetInteger();
+	NS_LOG_FUNCTION("delay " << delay);
+	app.Start (MilliSeconds (5000+(500*node_id)+delay));
     }
 
     if (check) {
