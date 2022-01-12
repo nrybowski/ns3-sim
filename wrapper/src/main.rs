@@ -142,7 +142,7 @@ fn main() {
         None => false
     };
 
-    let mut child = Command::new(format!("{pwd}containers/build.sh", pwd=pwd))
+    let mut child = Command::new(format!("{pwd}/containers/build.sh", pwd=pwd))
                         .current_dir(&pwd)
                         .spawn()
                         .expect("Failed to rebuild the containers.");
