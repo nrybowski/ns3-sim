@@ -184,4 +184,4 @@ for failure in os.listdir(pwd):
         print("No valid result for %s" % failure_id)
         continue
     results[failure_id] = (value * 1000 - 60000000) / 1000
-print(results)
+print('results', results)

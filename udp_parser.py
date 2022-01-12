@@ -173,7 +173,8 @@ if __name__ == '__main__':
             data[base] = ret[60]
         except KeyError:
             print('No gap')
-    print(data)
+            data[base] = 0
+    print('results', data)
     x = [x[1] for x in sorted(data.items(), key=lambda x: x[1])]
 
     import matplotlib.pyplot as plt
