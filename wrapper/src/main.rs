@@ -24,11 +24,16 @@ macro_rules! error {
 }
 
 fn run_ns3(opts: Cli, pwd: String) {
+    let udp = match opts.udp {
+        Some(value) => value,
+        None => false
+    };
     let mut cli: String = format!(
-        "--ntf={ntf} --check=true --runtime={runtime} --spt_delay={spt}", 
+        "--ntf={ntf} --check=true --runtime={runtime} --spt_delay={spt} --udp={udp}", 
         ntf=opts.ntf,
         runtime=opts.runtime,
-        spt=opts.spt
+        spt=opts.spt,
+        udp=udp
     );
     if !opts.failures.is_none() {
         cli = format!("{cli} --failures={failures}", cli=cli, failures=opts.failures.unwrap());
@@ -114,7 +119,9 @@ struct Cli {
     #[structopt(skip)]
     output: String,
     #[structopt(long, default_value="100")]
-    spt: u32
+    spt: u32,
+    #[structopt(long, help="Enable udp ping between nodes.")]
+    udp: Option<bool>,
 }
 
 fn main() {
@@ -134,6 +141,14 @@ fn main() {
         Some(value) => value,
         None => false
     };
+
+    let mut child = Command::new(format!("{pwd}containers/build.sh", pwd=pwd))
+                        .current_dir(&pwd)
+                        .spawn()
+                        .expect("Failed to rebuild the containers.");
+    let exit_code = child.wait()
+         .expect("Failed to wait the containers rebuild");
+    assert!(exit_code.success());
 
     if single && !opt.failures.is_none() {
         let new_opts = opt.clone();
