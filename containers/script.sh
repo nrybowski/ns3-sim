@@ -23,6 +23,7 @@ then
        " LDFLAGS="-rdynamic -pie" ./configure --disable-client
        cd "${CURDIR}"
 fi
+# TODO: debug mode only
 make -C /data/bird -j $(nproc)
 rm /data/my_exe/udp_client /data/my_exe/udp_server
 make -C /data/my_exe -j $(nproc)

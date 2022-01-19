@@ -47,5 +47,8 @@ USER ns3dce
 COPY dce-system.patch .
 RUN git apply --whitespace=warn < dce-system.patch
 
+COPY wscript.patch .
+RUN git apply --whitespace=warn < wscript.patch
+
 ENTRYPOINT ["./script.sh"]
 CMD [""]

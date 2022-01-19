@@ -1,0 +1,26 @@
+diff --git a/wscript b/wscript
+index ed25e6a..39ba8f9 100755
+--- a/wscript
++++ b/wscript
+@@ -771,8 +771,8 @@ def build(bld):
+     bld.build_a_script = types.MethodType(build_a_script, bld)
+     add_myscripts(bld)
+ 
+-    build_dce_tests(module, bld)
+-    build_dce_examples(module, bld)
++    #build_dce_tests(module, bld)
++    #build_dce_examples(module, bld)
+ 
+     # no idea to solve this two-way dependency (dce <-> netlink)
+     module.add_runner_test(needed = ['internet', 'point-to-point', 'core', 'dce'],
+@@ -781,8 +781,8 @@ def build(bld):
+                            source=['test/netlink-socket-test.cc'],
+                            name='netlink')
+ 
+-    if bld.env['KERNEL_STACK']:
+-        build_dce_kernel_examples(module, bld)
++    #if bld.env['KERNEL_STACK']:
++    #    build_dce_kernel_examples(module, bld)
+     
+     # build test-runner
+     module.add_example(target='bin/test-runner',
