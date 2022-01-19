@@ -122,6 +122,8 @@ struct Cli {
     spt: u32,
     #[structopt(long, help="Enable udp ping between nodes.")]
     udp: Option<bool>,
+    #[structopt(short,long)]
+    debug: bool
 }
 
 fn main() {
@@ -152,8 +154,9 @@ fn main() {
 
     if single && !opt.failures.is_none() {
         let new_opts = opt.clone();
-        let filename = format!("{pwd}/inputs/{failures}", pwd=pwd, failures=opt.failures.unwrap());
-        let content = fs::read_to_string(filename);
+        let failures = opt.failures.unwrap();
+        let filename = format!("{pwd}/inputs/{failures}", pwd=pwd, failures=failures);
+        let content = fs::read_to_string(&filename);
         match content {
             Err(_) => {}, // TODO
             Ok(content) => {
@@ -172,10 +175,11 @@ fn main() {
                     let tmpfile_output = Command::new("mktemp")
                                           .arg("-p")
                                           .arg(format!("{pwd}/inputs/", pwd=pwd))
-                                          .arg("tmp.XXXXXX.ntf")
+                                          .arg(format!("{filename}.XXXXXXXX", filename=failures))
                                           .output()
                                           .expect("Failed to create tempfile");
 
+                    //println!("{:#?}", String::from_utf8(tmpfile_output.stderr));
                     // get tempfile name
                     let mut tmpfile = String::from_utf8(tmpfile_output.stdout)
                                             .expect("Can't read tempfile name.");
@@ -198,6 +202,11 @@ fn main() {
                                         .into_string()
                                         .expect("Can't extract temp file name from full path")
                     );
+                    //println!("{:#?}", my_opts.failures);
+                    let tmp = my_opts.failures.clone();
+                    let _ = Command::new("cat")
+                        .arg(format!("{pwd}/inputs/{tmp}", pwd=pwd, tmp=tmp.unwrap()))
+                        .spawn();
 
                     // launch NS3 instance
                     let my_sem = sem.clone();

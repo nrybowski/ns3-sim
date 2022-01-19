@@ -37,7 +37,6 @@ WORKDIR /home/ns3dce/dce-linux-dev/source/dce-linux-dev
 COPY requirements.txt .
 RUN pip3.7 install -r requirements.txt
 #COPY script.sh spfs.py ./
-COPY script.sh .
 
 USER root
 RUN rm /usr/bin/python3
@@ -49,6 +48,8 @@ RUN git apply --whitespace=warn < dce-system.patch
 
 COPY wscript.patch .
 RUN git apply --whitespace=warn < wscript.patch
+
+COPY script.sh .
 
 ENTRYPOINT ["./script.sh"]
 CMD [""]

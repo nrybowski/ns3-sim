@@ -28,7 +28,8 @@ void LinkFailure(Ptr<PointToPointNetDevice> src, Ptr<PointToPointNetDevice> dst)
 }
 
 TopoHelper::TopoHelper(string ntf_file, bool check, uint32_t spt_delay) {
-    a = 1;
+    four = 1;
+    three = 0;
     this->ntf_file = ntf_file;
     this->check = check;
 
@@ -61,7 +62,11 @@ TopoHelper::~TopoHelper() {
  * Configure node's iface with specific ip.
  */
 string TopoHelper::ConfigureIface(Ptr<Node> node, unsigned int id) {
-    string ip = "10.0.0." + to_string(a++) + "/32";
+    if (four >= 244) {
+	four = 1;
+	three += 1;
+    }
+    string ip = "10.0." + to_string(three) + "." + to_string(four++) + "/32";
     //NS_LOG_FUNCTION(node->GetId() << id << ip);
     LinuxStackHelper::RunIp (node, Seconds (1), "a add " + ip + " dev sim" + to_string(id));
     LinuxStackHelper::RunIp (node, Seconds (1), "l set dev sim" + to_string(id) + " up");
@@ -149,12 +154,14 @@ void TopoHelper::MakeLinkFail(uint32_t src_id, uint32_t dst_id, uint32_t delay_v
 void TopoHelper::TopoGen(void) {
 
     NS_LOG_FUNCTION("Generating topology defined in <" + ntf_file + ">");
+    NS_LOG_FUNCTION("Number of nodes <" + to_string(ntf->nNodes) + ">");
 
-    if (check)
+    //if (check)
 	// Dump the mapping of node's names and node's ids
-	ntf->dumpNodes(filename + ".map");
+	//ntf->dumpNodes(filename + ".map");
 
-    nodes.Create(ntf->nNodes());
+
+    nodes.Create(ntf->nNodes);
     dceManager.Install (nodes);
     //Ptr<Node> sink_node = nodes.Get(nodes.GetN()-1);
 
@@ -162,16 +169,16 @@ void TopoHelper::TopoGen(void) {
     for (vector<Link>::iterator links = ntf->getLinks(); links != ntf->getLastLink(); links++) {
 	Link l = *links;
 	// From NTF parser to NS3
-	int n1_id = ntf->getNodeId(l.origin),
-	    n2_id = ntf->getNodeId(l.end);
+	//int n1_id = ntf->getNodeId(l.origin),
+	//    n2_id = ntf->getNodeId(l.end);
 
 	// Get both ends of the link
-	Ptr<Node> n1 = nodes.Get(n1_id),
-		  n2 = nodes.Get(n2_id);
+	Ptr<Node> n1 = nodes.Get(l.origin),
+		  n2 = nodes.Get(l.end);
 
 	// Set link's data rate and delay
 	p2p.SetDeviceAttribute ("DataRate", StringValue ("100Gbps"));
-	p2p.SetChannelAttribute ("Delay", StringValue (to_string(l.delay) + "ms"));
+	p2p.SetChannelAttribute ("Delay", StringValue (to_string(l.delay) + "us"));
 
 	// Install NetDevices on nodes and channel between them
 	p2p.Install(n1, n2);
@@ -181,20 +188,30 @@ void TopoHelper::TopoGen(void) {
 		 n2_iface_id = n2->GetNDevices()-1;
 
 	// Map link metrics such that `<node_id, iface_id> = metric` for BIRD config file
-	metrics.insert(pair<tuple<uint32_t, uint32_t>, uint32_t>(make_tuple(n1_id, n1_iface_id), l.f_metric));
-	metrics.insert(pair<tuple<uint32_t, uint32_t>, uint32_t>(make_tuple(n2_id, n2_iface_id), l.r_metric));
+	metrics.insert(pair<tuple<uint32_t, uint32_t>, uint32_t>(make_tuple(l.origin, n1_iface_id), l.f_metric));
+	metrics.insert(pair<tuple<uint32_t, uint32_t>, uint32_t>(make_tuple(l.end, n2_iface_id), l.r_metric));
 
 	// Configure newly created ifaces
 	//string ip1 = ConfigureIface(n1, n1_iface_id),
 	//       ip2 = ConfigureIface(n2, n2_iface_id);
-	string ip1 = "10.0.0." + to_string(a++) + "/32",
-	       ip2 = "10.0.0." + to_string(a++) + "/32";
+	if (four >= 244) {
+	    four = 1;
+	    three += 1;
+	}
+	string ip1 = "10.0." + to_string(three) + "." + to_string(four++) + "/32";
+	if (four >= 244) {
+	    four = 1;
+	    three += 1;
+	}
+	string ip2 = "10.0." + to_string(three) + "." + to_string(four++) + "/32";
+
 	LinuxStackHelper::RunIp (n1, Seconds (1), "a add " + ip1 + " peer " + ip2 + " dev sim" + to_string(n1_iface_id));
 	//LinuxStackHelper::RunIp (n1, Seconds (1), "a add " + ip1 + " dev sim" + to_string(n1_iface_id));
 	LinuxStackHelper::RunIp (n1, Seconds (1), "l set dev sim" + to_string(n1_iface_id) + " up");
 	LinuxStackHelper::RunIp (n2, Seconds (1), "a add " + ip2 + " peer " + ip1 + " dev sim" + to_string(n2_iface_id));
 	//LinuxStackHelper::RunIp (n2, Seconds (1), "a add " + ip2 + " dev sim" + to_string(n2_iface_id));
 	LinuxStackHelper::RunIp (n2, Seconds (1), "l set dev sim" + to_string(n2_iface_id) + " up");
+	NS_LOG_FUNCTION(l);
 	NS_LOG_FUNCTION(n1->GetId() << n2->GetId() << ip1 << ip2);
     }
 
@@ -316,7 +333,7 @@ void TopoHelper::ConfigureBird(uint32_t spt_delay) {
 	dce.ParseArguments("-c /etc/bird.conf -s /var/run/bird.ctl");
 	app = dce.Install (*node);
 	int delay = rand->GetInteger();
-	NS_LOG_FUNCTION("delay " << delay);
+        //NS_LOG_FUNCTION("delay " << delay);
 	app.Start (MilliSeconds (5000+(500*node_id)+delay));
     }
 
@@ -343,8 +360,8 @@ void TopoHelper::ConfigureBird(uint32_t spt_delay) {
 		else if (nd0 == chan->GetDevice(1))
 		    nd1 = chan->GetDevice(0);
 
-		out << (*node)->GetId() << "," << nd0->GetIfIndex() << "," << nd1->GetNode()->GetId() << "," << nd1->GetIfIndex() << "," << chan->GetDelay().GetMilliSeconds() << endl;
-		//NS_LOG_FUNCTION((*node)->GetId() <<  nd0->GetIfIndex() << nd1->GetNode()->GetId() << nd1->GetIfIndex() << chan->GetDelay().GetMilliSeconds());
+		out << (*node)->GetId() << "," << nd0->GetIfIndex() << "," << nd1->GetNode()->GetId() << "," << nd1->GetIfIndex() << "," << (float) chan->GetDelay().GetMicroSeconds() / 1000 << endl;
+		//NS_LOG_FUNCTION((*node)->GetId() <<  nd0->GetIfIndex() << nd1->GetNode()->GetId() << nd1->GetIfIndex() << chan->GetDelay().GetMicroSeconds() << (float) chan->GetDelay().GetMicroSeconds() / 1000);
 	    }
 	}
 	out.close();
@@ -360,9 +377,9 @@ void TopoHelper::ConfigureBird(uint32_t spt_delay) {
 void TopoHelper::ScheduleFailures(string fail_path) {
     NtfContent failures(fail_path);
     failures.dumpLinks();
-    for (vector<Link>::iterator links = failures.getLinks(); links != failures.getLastLink(); links++)
-	MakeLinkFail(ntf->getNodeId((*links).origin), ntf->getNodeId((*links).end), (*links).delay,
-		(*links).failure_start, (*links).failure_duration);
+    for (vector<Link>::iterator links = failures.getLinks(); links != failures.getLastLink(); links++) {
+	MakeLinkFail((*links).origin, (*links).end, (*links).delay, (*links).failure_start, (*links).failure_duration);
+    }
 }
 
 void TopoHelper::Run(uint32_t runtime, bool pcap) {

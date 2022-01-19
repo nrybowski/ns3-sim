@@ -47,7 +47,8 @@ class TopoHelper {
 	NtfContent *ntf;
 
 	bool check; /**< Indicate whether the generated topology must be verified. */
-	unsigned int a; /**< IP address counter. @see ConfigureIface. */
+	unsigned int four; /**< IP address counter. @see ConfigureIface. */
+	unsigned int three; /**< IP address counter. @see ConfigureIface. */
 
 	// Methods
 	string ConfigureIface(Ptr<Node> node, unsigned int id);
