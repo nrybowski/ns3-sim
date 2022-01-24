@@ -13,6 +13,10 @@ int NtfContent::getNodeId(string node) {
     return nodes.size();
 }*/
 
+size_t NtfContent::nLinks() {
+    return links.size();
+}
+
 const vector<Link>::iterator NtfContent::getLinks() {
     return links.begin();
 }
@@ -233,7 +237,7 @@ int main(int argc, char **argv) {
     char buf[100];
     strncpy(buf, argv[1], sizeof(buf));
     NtfContent ntf(buf);
-    printf("Nnodes %lu\n", ntf.nNodes);
+    printf("Nnodes %lu\nNLinks %lu\n", ntf.nNodes, ntf.nLinks());
     ntf.dumpLinks();
     ntf.dumpNodes();
 }

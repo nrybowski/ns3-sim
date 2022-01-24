@@ -82,6 +82,7 @@ class NtfContent {
 	void dumpNodes();
 	void dumpNodes(string filename);
 	void dumpLinks();
+	size_t nLinks();
 	//size_t nNodes();
 	size_t nNodes;
 	int getNodeId(string node);
