@@ -10,6 +10,7 @@
 
 #include <memory> // unique_ptr
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 
 #include "ns3/NtfParser.h"

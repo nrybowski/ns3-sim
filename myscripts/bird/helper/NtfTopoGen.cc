@@ -166,6 +166,7 @@ void TopoHelper::TopoGen(void) {
     //Ptr<Node> sink_node = nodes.Get(nodes.GetN()-1);
 
     // Create the topology
+    int count = 0;
     for (vector<Link>::iterator links = ntf->getLinks(); links != ntf->getLastLink(); links++) {
 	Link l = *links;
 	// From NTF parser to NS3
@@ -178,7 +179,7 @@ void TopoHelper::TopoGen(void) {
 
 	// Set link's data rate and delay
 	p2p.SetDeviceAttribute ("DataRate", StringValue ("100Gbps"));
-	p2p.SetChannelAttribute ("Delay", StringValue (to_string(l.delay) + "us"));
+	p2p.SetChannelAttribute ("Delay", StringValue (to_string(l.delay) + "ns"));
 
 	// Install NetDevices on nodes and channel between them
 	p2p.Install(n1, n2);
@@ -213,7 +214,14 @@ void TopoHelper::TopoGen(void) {
 	LinuxStackHelper::RunIp (n2, Seconds (1), "l set dev sim" + to_string(n2_iface_id) + " up");
 	NS_LOG_FUNCTION(l);
 	NS_LOG_FUNCTION(n1->GetId() << n2->GetId() << ip1 << ip2);
+	count++;
     }
+
+    /*for (auto &p : metrics) {
+	cout << get<0>(p.first) << " " << get<1>(p.first) << " " << p.second <<endl;
+    }*/
+    NS_LOG_FUNCTION("count " << count);
+    NS_LOG_FUNCTION("#metrics " << metrics.size());
 
     /*Ptr<Node> node;
     for (uint32_t i=0; i<nodes.GetN(); i++) {
@@ -359,9 +367,11 @@ void TopoHelper::ConfigureBird(uint32_t spt_delay) {
 		    nd1 = chan->GetDevice(1);
 		else if (nd0 == chan->GetDevice(1))
 		    nd1 = chan->GetDevice(0);
-
-		out << (*node)->GetId() << "," << nd0->GetIfIndex() << "," << nd1->GetNode()->GetId() << "," << nd1->GetIfIndex() << "," << (float) chan->GetDelay().GetMicroSeconds() / 1000 << endl;
-		//NS_LOG_FUNCTION((*node)->GetId() <<  nd0->GetIfIndex() << nd1->GetNode()->GetId() << nd1->GetIfIndex() << chan->GetDelay().GetMicroSeconds() << (float) chan->GetDelay().GetMicroSeconds() / 1000);
+		
+		double a = (double) chan->GetDelay().GetNanoSeconds() / 1000000;
+		out << (*node)->GetId() << "," << nd0->GetIfIndex() << "," << nd1->GetNode()->GetId() << "," << nd1->GetIfIndex() << "," << fixed << setprecision(6) << a << endl;
+		//NS_LOG_FUNCTION((*node)->GetId() << "," << nd0->GetIfIndex() << "," << nd1->GetNode()->GetId() << "," << nd1->GetIfIndex() << "," << fixed << setprecision(6) << a);
+		//NS_LOG_FUNCTION((*node)->GetId() <<  nd0->GetIfIndex() << nd1->GetNode()->GetId() << nd1->GetIfIndex() << chan->GetDelay().GetNanoSeconds() << fixed << setprecision(6) << a);
 	    }
 	}
 	out.close();
