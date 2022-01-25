@@ -19,14 +19,17 @@ TOPO=${TOPOLOGY}${N_NODES}.ntf
 python3 ${NEWPWD}/${TOPOLOGY}.py ${N_NODES} > ${NEWPWD}/inputs/${TOPO}
 
 # launch the NS3 wrapper
-PWD=${NEWPWD} cargo run --manifest-path=${NEWPWD}/wrapper/Cargo.toml -- -n ${TOPO} -r 65 > /dev/shm/log.txt 2>&1 &
+PWD=${NEWPWD} cargo run --manifest-path=${NEWPWD}/wrapper/Cargo.toml -- -n ${TOPO} -r 120 > /dev/shm/log.txt 2>&1 &
 
 # lock until NS3-DCE starts
 while [[ ! -f /proc/$(pgrep ${PROC})/status ]]; do sleep 1; done
 PID=$(pgrep "${PROC}")
 
 # monitor memory consumption of NTF helper
-TMP=$(while [[ -f /proc/"${PID}")/status ]]; do echo "\n$(cat /proc/"${PID}"/status | grep VmPeak | sed -e "s/^VmPeak:\\t[ ]*//g;s/ kB$//g")" && sleep 1; done) && echo "X-${N_NODES}-RESULT-MEM $(echo -e ${TMP} | tail -n 1)"
+TMP=$(while [[ -f /proc/"${PID}"/status ]]; do echo "\n$(cat /proc/"${PID}"/status | grep VmPeak | sed -e "s/^VmPeak:\\t[ ]*//g;s/ kB$//g")" && sleep 1; done) && echo "X-${N_NODES}-RESULT-MEM $(echo -e ${TMP} | tail -n 1)"
+
+# wait end of file transfer and container shutdown
+while [[ $(docker ps | wc -l) -ge 2 ]]; do sleep 1; done
 
 # monitor execution time of waf
 MYSCRIPT="""
