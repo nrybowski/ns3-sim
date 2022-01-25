@@ -1,0 +1,37 @@
+%variables
+TOPOLOGY={ring,fm}
+N_NODES=[10-100#10]
+
+%config
+timeout=3600
+default_repo=local
+var_names={N_NODES:Nodes [#],MEM:Memory Peak [Kb],TIME:Total run time [s]}
+title=Tmp
+n_runs=3
+
+%script
+set -xe
+PROC=dce-ntf-bird
+NEWPWD=${PWD}/..
+TOPO=${TOPOLOGY}${N_NODES}.ntf
+
+# generate the NTF topology
+python3 ${NEWPWD}/${TOPOLOGY}.py ${N_NODES} > ${NEWPWD}/inputs/${TOPO}
+
+# launch the NS3 wrapper
+PWD=${NEWPWD} cargo run --manifest-path=${NEWPWD}/wrapper/Cargo.toml -- -n ${TOPO} -r 65 > /dev/shm/log.txt 2>&1 &
+
+# lock until NS3-DCE starts
+while [[ ! -f /proc/$(pgrep ${PROC})/status ]]; do sleep 1; done
+
+# monitor memory consumption of NTF helper
+TMP=$(while [[ -f /proc/$(pgrep ${PROC})/status ]]; do echo "\n$(cat /proc/$(pgrep ${PROC})/status | grep VmPeak | sed -e "s/^VmPeak:\\t[ ]*//g;s/ kB$//g")" && sleep 1; done) && echo "X-${N_NODES}-RESULT-MEM $(echo -e ${TMP} | tail -n 1)"
+
+# monitor execution time of waf
+MYSCRIPT="""
+import os
+m, s = os.environ.get('REAL').split('m')
+print('X-%s-RESULT-TIME %f' % (os.environ.get('N_NODES'), (float(m)*60+float(s[:-1]))))
+"""
+export N_NODES
+REAL=$(grep real /dev/shm/log.txt | sed -e "s/real//g") python3 -c "${MYSCRIPT}"
