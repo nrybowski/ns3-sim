@@ -23,9 +23,10 @@ PWD=${NEWPWD} cargo run --manifest-path=${NEWPWD}/wrapper/Cargo.toml -- -n ${TOP
 
 # lock until NS3-DCE starts
 while [[ ! -f /proc/$(pgrep ${PROC})/status ]]; do sleep 1; done
+PID=$(pgrep "${PROC}")
 
 # monitor memory consumption of NTF helper
-TMP=$(while [[ -f /proc/$(pgrep ${PROC})/status ]]; do echo "\n$(cat /proc/$(pgrep ${PROC})/status | grep VmPeak | sed -e "s/^VmPeak:\\t[ ]*//g;s/ kB$//g")" && sleep 1; done) && echo "X-${N_NODES}-RESULT-MEM $(echo -e ${TMP} | tail -n 1)"
+TMP=$(while [[ -f /proc/"${PID}")/status ]]; do echo "\n$(cat /proc/"${PID}"/status | grep VmPeak | sed -e "s/^VmPeak:\\t[ ]*//g;s/ kB$//g")" && sleep 1; done) && echo "X-${N_NODES}-RESULT-MEM $(echo -e ${TMP} | tail -n 1)"
 
 # monitor execution time of waf
 MYSCRIPT="""
