@@ -1,0 +1,47 @@
+%variables
+TOPOLOGY=house
+MEASURE={fib_parser.py:fib,udp_parser.py:udp}
+SPT={10:10ms,100:100ms}
+ECMP={true:on,false:off}
+
+
+%config
+timeout=3600
+default_repo=local
+n_runs=1
+var_names={X: Link Failure,CONVERGENCE:Convergence Time [ms],NOECMP:Convergence Time [ms]}
+var_lim={CONVERGENCE:0-500,NOECMP:0-500}
+title=Convergence time for ${TOPOLOGY} links
+graph_variables_as_series={MEASURE,SPT,ECMP}
+graph_variables_explicit=1
+accept_zero={CONVERGENCE}
+
+%init
+if [[ -f ${TOPOLOGY}.out ]]; then rm ${TOPOLOGY}.out; fi
+
+%script
+set -xe
+NEWPWD=${PWD}/..
+MV=${TOPOLOGY}-${SPT}
+LOCK=${NEWPWD}/output/${MV}.log
+if [[ "${MEASURE}" != udp_parser.py ]]
+then
+	# we skip if udp_parser since both methods are applied at the first call, there is no need to resimulate
+	PWD=${NEWPWD} cargo run --manifest-path=${NEWPWD}/wrapper/Cargo.toml -- -n ${TOPOLOGY}.ntf -f ${TOPOLOGY}-failures1.ntf -r 65 -s true --spt ${SPT} --udp true --ecmp=${ECMP} > ${LOCK} 2>&1
+	OUTPUT=$(grep OUTPUT "${LOCK}" | sed -e "s/^OUTPUT//g")
+	echo ${OUTPUT} >> ${NEWPWD}/${TOPOLOGY}.out
+fi
+OUTPUT=$(tail -n 1 ${NEWPWD}/${TOPOLOGY}.out)
+DATA=$(python3 ${NEWPWD}/${MEASURE} ${OUTPUT} | grep RESULT)
+if [[ "${ECMP}" != true ]]
+then
+	echo ${DATA} | sed -e "s/CONVERGENCE/NOECMP/g"
+else
+	echo ${DATA}
+fi
+
+%pyexit
+#a = {key: value['CONVERGENCE'] for key, value in KIND_RESULTS['X'].items()}
+#b = {key: value for key, value in sorted(a.items(), key=lambda x: x[1])}
+#for idx, value in enumerate(b.values()):
+#     KIND_RESULTS['X'][idx] = {'CONVERGENCE': value}
