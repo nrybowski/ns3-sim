@@ -141,13 +141,16 @@ def converge_time(base: str):
     all_gaps = {}
     for directory in os.listdir(base):
             #directory = 'files-4'
-        with open('%s/%s/var/log/udp_ping.log' % (base, directory), 'r') as fd:
-            print(directory)
-            for key, value in local_gaps(fd.read()).items():
-                try:
-                    all_gaps[key] += value
-                except KeyError:
-                    all_gaps[key] = value
+        if 'files-' not in directory: continue
+        try:
+            with open('%s/%s/var/log/udp_ping.log' % (base, directory), 'r') as fd:
+                print(directory)
+                for key, value in local_gaps(fd.read()).items():
+                    try:
+                        all_gaps[key] += value
+                    except KeyError:
+                        all_gaps[key] = value
+        except FileNotFoundError: continue
     #print(all_gaps)
     #print()
     convergence = {}
@@ -162,12 +165,15 @@ def converge_time(base: str):
 if __name__ == '__main__':
     import sys
     data = {}
-    for base in os.listdir(sys.argv[1]):
-        a = os.path.join(sys.argv[1], base)
+    import os
+    #pwd = '%s/ns3-sim/output/%s' %(os.environ.get("HOME"), sys.argv[1])
+    pwd = sys.argv[1]
+    for base in os.listdir(pwd):
+        a = os.path.join(pwd, base)
         if not os.path.isdir(a):
             continue
         print(base)
-        basedir = '%s/%s/files' % (sys.argv[1], base)
+        basedir = '%s/%s' % (pwd, base)
         ret = converge_time(basedir)
         try:
             data[base] = ret[60]
@@ -175,7 +181,10 @@ if __name__ == '__main__':
             print('No gap')
             data[base] = 0
     print('results', data)
+    print('results', [data[i] for i in sorted(data.keys())])
     x = [x[1] for x in sorted(data.items(), key=lambda x: x[1])]
+    for i in sorted(data.keys()):
+        print("X-%s-RESULT-CONVERGENCE %f" % (i, data[i]))
 
     import matplotlib.pyplot as plt
     plt.plot(x, 'bx')

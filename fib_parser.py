@@ -11,6 +11,22 @@ fibs = {
 }
 """
 
+def gen_addresses(n: int) -> list:
+    high = 0
+    low = 1
+
+    addresses = []
+
+    for i in range(n):
+            if low > 250:
+                    high += 1
+                    low = 1
+            addresses.append('10.1.%i.%i' % (high, low))
+            low += 1
+
+    return addresses
+
+
 def ip_into_rid(ip: str) -> int:
     return int(ip.split('.')[-1]) - 1
 
@@ -128,15 +144,17 @@ def evaluate_convergence(pwd):
             if not value:
                 candidate = data[idx-1]
                 return candidate[0] if candidate[1] else -1
+        print(data)
         return data[-1][0] if data[-1][1] else -1
 
     print('Evaluate convergence for %s' % pwd)
     fibs = {}
     reverse = {}
-    nodes = os.listdir(pwd)
+    nodes = [f for f in os.listdir(pwd) if 'files-' in f]
     n_nodes = len(nodes)
     result = {}
     for node in nodes:
+        if 'files-' not in node: continue
         fibs, reverse = collect_fibs('%s/%s/var/log' % (pwd, node), fibs, reverse)
 
     fibs = {timestamp: fibs[timestamp] for timestamp in sorted(fibs.keys())}
@@ -145,12 +163,12 @@ def evaluate_convergence(pwd):
         print(timestamp)
         correct = 0
         incorrect = 0
-        for i in range(1, n_nodes+1):
-            for j in range(1, n_nodes+1):
-                if i == j:
-                    continue
-                src = '10.0.1.%i' %i
-                dst = '10.0.1.%i' %j
+        addr = gen_addresses(n_nodes)
+        for src in addr:
+            for dst in addr:
+                if src == dst: continue
+                #src = '10.0.1.%i' %i
+                #dst = '10.0.1.%i' %j
 
                 routes = explore(src, dst, data, reverse)
                 valid = len([item for item in routes if type(item) == list]) == len(routes) and len(routes) > 0
@@ -172,16 +190,23 @@ def evaluate_convergence(pwd):
     print(result)
     ioc = instant_of_convergence(result)
     print(ioc, '\n')
-    rid = pwd.split('/')[2]
+    rid = pwd.split('/')[-1]
     return (rid, ioc)
 
 import sys
-pwd = "output/%s" % sys.argv[1]
+import os
+#pwd = "%s/ns3-sim/output/%s" % (os.environ.get("HOME"), sys.argv[1])
+pwd = sys.argv[1]
+
 results = {}
 for failure in os.listdir(pwd):
-    failure_id, value = evaluate_convergence("%s/%s/files" % (pwd, failure))
+    failure_id, value = evaluate_convergence("%s/%s" % (pwd, failure))
+    print('id',failure_id)
     if value < 0:
         print("No valid result for %s" % failure_id)
         continue
     results[failure_id] = (value * 1000 - 60000000) / 1000
+
 print('results', results)
+for j in sorted([int(i) for i in results.keys()]):
+    print("X-%i-RESULT-CONVERGENCE %f" % (j, results[str(j)]))
