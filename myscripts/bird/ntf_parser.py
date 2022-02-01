@@ -121,8 +121,9 @@ for (src, dst), l in links.items():
                 # output for C++ wrapper
         print('%i %i %i %i %i %i %i' % (src_id, dst_id, link['f_metric'], link['r_metric'], link['delay'], link['begin'], link['end']))
 
-        mygraph[src_id][dst_id] = link['f_metric']
-        mygraph[dst_id][src_id] = link['r_metric']
+        if 'failures' not in filename:
+            mygraph[src_id][dst_id] = link['f_metric']
+            mygraph[dst_id][src_id] = link['r_metric']
 
         # 
         for i in ['%s %s %i %.6f' % (src, dst, link['f_metric'], link['delay'] / 1000000), '%s %s %i %f' % (dst, src, link['r_metric'], link['delay'] / 1000000)]:
@@ -133,16 +134,17 @@ for (src, dst), l in links.items():
                 print('#Warning ', link['delay'])
                 fail += 1
 
-print('#Failures %i' % fail)
-if len(data) != 0:
-    exit(1)
+if 'failures' not in filename:
+    print('#Failures %i' % fail)
+    if len(data) != 0:
+        exit(1)
 
-from scipy.sparse.csgraph import connected_components
-mygraph = csr_matrix(mygraph)
-#with open('connected', 'w') as fd:
-n, labesl = connected_components(mygraph)
-if n != 1:
-    exit(1)
+    from scipy.sparse.csgraph import connected_components
+    mygraph = csr_matrix(mygraph)
+    #with open('connected', 'w') as fd:
+    n, labesl = connected_components(mygraph)
+    if n != 1:
+        exit(1)
 
 
 #fd.flush()
