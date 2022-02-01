@@ -29,11 +29,15 @@ fn run_ns3(opts: Cli, pwd: String) {
         None => false
     };
     let mut cli: String = format!(
-        "--ntf={ntf} --check=true --runtime={runtime} --spt_delay={spt} --udp={udp}", 
+        "--ntf={ntf} --check=true --runtime={runtime} --spt_delay={spt} --udp={udp} --ecmp={ecmp}", 
         ntf=opts.ntf,
         runtime=opts.runtime,
         spt=opts.spt,
-        udp=udp
+        udp=udp,
+        ecmp=match opts.ecmp {
+            Some(value) => value,
+            None => true
+        }
     );
     if !opts.failures.is_none() {
         cli = format!("{cli} --failures={failures}", cli=cli, failures=opts.failures.unwrap());
@@ -44,12 +48,23 @@ fn run_ns3(opts: Cli, pwd: String) {
     println!("{}", opts.output);
     fs::create_dir_all(&opts.output).expect("Can't create output directories");
 
+    /*let tmpdir = Command::new("mktemp")
+                        .arg("-d")
+                        .arg("-p")
+                        .arg("/dev/shm")
+                        .arg("-t")
+                        .arg(format!("tmp.XXXXXX.{ntf}", ntf=opts.ntf))
+                        .output()
+                        .expect("Failed to create tmp dir in /dev/shm");
+    let mut tmpdir_path = String::from_utf8(tmpdir.stdout).expect("Unable to read the tmp dir name");
+    tmpdir_path.pop();*/
+
     info!("Starting NS3 container. Giving hand to NS3.");
     let child = Command::new("docker")
                         .arg("run")
                         .arg("--rm")
-                        .arg("-v")
-                        .arg(format!("{output}:/data/output", output=opts.output))
+                        .arg("--cap-add")
+                        .arg("SYS_PTRACE")
                         .arg("-v")
                         .arg(format!("{pwd}/bird:/data/bird", pwd=pwd))
                         .arg("-v")
@@ -58,7 +73,10 @@ fn run_ns3(opts: Cli, pwd: String) {
                         .arg(format!("{pwd}/inputs:/data/inputs", pwd=pwd))
                         .arg("-v")
                         .arg(format!("{pwd}/udp_ping:/data/my_exe", pwd=pwd))
+                        .arg("-v")
+                        .arg(format!("{shm}:/dev/shm", shm=opts.output))
                         .arg("-e")
+                        //.arg("NS_LOG=*")
                         .arg("NS_LOG=NtfTopoHelper=all:BlackholeErrorModel=all")
                         .arg("-e")
                         .arg("DCE_PATH=/data/bird:/data/my_exe:${DCE_PATH}")
@@ -99,6 +117,17 @@ fn run_ns3(opts: Cli, pwd: String) {
     }*/
     
     info!("NS3 finished");
+
+    /*let dst = format!("{dir}/", dir=tmpdir_path);
+    println!("{} {}", dst, &opts.output);
+
+    thread::spawn(move || {
+        Command::new("cp -r")
+        .arg(dst)
+        .arg(&opts.output)
+        .output()
+        .expect("Can't move results to disk");
+    });*/
 }
 
 fn save_output(dest: String) {
@@ -123,13 +152,28 @@ struct Cli {
     #[structopt(long, help="Enable udp ping between nodes.")]
     udp: Option<bool>,
     #[structopt(short,long)]
-    debug: bool
+    debug: bool,
+    #[structopt(short,long)]
+    ecmp: Option<bool>
 }
 
 fn main() {
     let mut opt = Cli::from_args();
     let pwd: String = env::var("PWD").unwrap();
-    opt.output = format!("{pwd}/output/{ntf}", pwd=pwd, ntf=opt.ntf);
+
+    let output_dir = Command::new("mktemp")
+                        .arg("-d")
+                        .arg("-p")
+                        .arg("/dev/shm")
+                        .arg("-t")
+                        .arg(format!("{ntf}.XXXX", ntf=opt.ntf))
+                        .output()
+                        .expect("Failed to create tmp dir in /dev/shm");
+    let mut output_dir_path = String::from_utf8(output_dir.stdout).expect("Unable to read the tmp dir name");
+    output_dir_path.pop();
+    opt.output = output_dir_path;
+    println!("{}", format!("OUTPUT{}", opt.output));
+    //opt.output = format!("{pwd}/output/{ntf}", pwd=pwd, ntf=opt.ntf);
 
     let nproc_cmd = Command::new("nproc")
                         .output()
