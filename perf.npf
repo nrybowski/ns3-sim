@@ -20,7 +20,7 @@ LOG=/dev/shm/${TOPO}.log
 python3 ${NEWPWD}/${TOPOLOGY}.py ${N_NODES} > ${NEWPWD}/inputs/${TOPO}
 
 # launch the NS3 wrapper
-PWD=${NEWPWD} cargo run --manifest-path=${NEWPWD}/wrapper/Cargo.toml -- -n ${TOPO} -r 120 > ${LOG} 2>&1 &
+PWD=${NEWPWD} cargo run --manifest-path=${NEWPWD}/wrapper/Cargo.toml -- -n ${TOPO} -r 120 > /dev/shm/log.txt 2>&1 &
 
 # lock until NS3-DCE starts
 while [[ ! -f /proc/$(pgrep ${PROC})/status ]]; do sleep 1; done
