@@ -1,0 +1,28 @@
+%variables
+TOPOLOGY=house
+SPT={10:10ms,50:50ms,100:100ms}
+ECMP={true:on}
+NODES=[0-5]
+
+
+%config
+timeout=3600
+default_repo=local
+n_runs=1
+var_names={NODES:Node Failure,CONVERGENCE:Convergence Time [ms]}
+var_lim={CONVERGENCE:0-500,NOECMP:0-500}
+title=Convergence time for ${TOPOLOGY} nodes
+graph_variables_as_series={SPT,ECMP}
+graph_variables_explicit=1
+accept_zero={CONVERGENCE}
+
+%script
+set -x
+NEWPWD=${PWD}/..
+LOCK=${NEWPWD}/output/${TOPOLOGY}-node${NODES}.log
+PWD=${NEWPWD} cargo run --manifest-path=${NEWPWD}/wrapper/Cargo.toml -- -n ${TOPOLOGY}.ntf \
+	-f ${TOPOLOGY}-node${NODES}-failures.ntf -r 65 --spt ${SPT} --ecmp=${ECMP} > ${LOCK} 2>&1
+OUTPUT=$(grep OUTPUT "${LOCK}" | sed -e "s/^OUTPUT//g")
+mkdir ${OUTPUT}/0
+mv ${OUTPUT}/* ${OUTPUT}/0
+python3 ${NEWPWD}/fib_parser.py ${OUTPUT} | grep RESULT | sed -e 's/X-0-RESULT-CONVERGENCE/X-${NODE}-RESULT-CONVERGENCE/g'
