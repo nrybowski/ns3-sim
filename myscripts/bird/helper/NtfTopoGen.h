@@ -54,13 +54,13 @@ class TopoHelper {
 	// Methods
 	string ConfigureIface(Ptr<Node> node, unsigned int id);
 	void TopoGen(void);
-	void ConfigureBird(uint32_t spt_delay);
+	void ConfigureBird(uint32_t spt_delay, bool ecmp);
 	vector<pair<Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>>> LinkCallback(uint32_t src_id, uint32_t dst_id,
 		uint32_t delay_value, void (*callback)(Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>, uint32_t),
 		uint32_t callback_delay, uint32_t callback_duration);
 
     public:
-	TopoHelper(string ntf_file, bool check, uint32_t spt_delay);
+	TopoHelper(string ntf_file, bool check, uint32_t spt_delay, bool ecmp);
 	~TopoHelper();
 	void MakeLinkFail(uint32_t src_id, uint32_t dst_id, uint32_t delay_value, uint32_t delay, uint32_t duration);
 	void MakeLinkFail(uint32_t src_id, uint32_t dst_id, uint32_t delay_value, uint32_t delay);

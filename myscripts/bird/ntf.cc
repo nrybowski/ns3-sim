@@ -7,6 +7,7 @@ string failures;
 bool pcap = false;
 uint32_t spt_delay = 100;
 bool udp = false;
+bool ecmp = true;
 
 int main (int argc, char *argv[]) {
     CommandLine cmd;
@@ -17,11 +18,12 @@ int main (int argc, char *argv[]) {
     cmd.AddValue ("pcap", "Register PCAP outputs", pcap);
     cmd.AddValue ("spt_delay", "SPT computation delay [ms]", spt_delay);
     cmd.AddValue ("udp", "Use udp ping between nodes", udp);
+    cmd.AddValue ("ecmp", "Enable ECMP", ecmp);
     cmd.Parse (argc, argv);
     spt_delay *= 1000;
 
     // generate network topology
-    TopoHelper topo(ntf, check, spt_delay);
+    TopoHelper topo(ntf, check, spt_delay, ecmp);
 
     // schedule failures if any
     if (strcmp(failures.c_str(), "") != 0)

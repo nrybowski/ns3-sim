@@ -27,7 +27,7 @@ void LinkFailure(Ptr<PointToPointNetDevice> src, Ptr<PointToPointNetDevice> dst)
     LinkFailure(src, dst, 0);
 }
 
-TopoHelper::TopoHelper(string ntf_file, bool check, uint32_t spt_delay) {
+TopoHelper::TopoHelper(string ntf_file, bool check, uint32_t spt_delay, bool ecmp) {
     four = 1;
     three = 0;
     this->ntf_file = ntf_file;
@@ -48,7 +48,7 @@ TopoHelper::TopoHelper(string ntf_file, bool check, uint32_t spt_delay) {
     // TODO: switch case on daemon kind
     // TODO add check var in args
     // Configure and schedule BIRD daemon on each topology's node.
-    ConfigureBird(spt_delay);
+    ConfigureBird(spt_delay, ecmp);
 
     NS_LOG_FUNCTION("Topology is ready to use");
 }
@@ -258,12 +258,15 @@ NodeContainer *TopoHelper::GetNodes(void) {
     return &nodes;
 }
 
-void TopoHelper::ConfigureBird(uint32_t spt_delay) {
+void TopoHelper::ConfigureBird(uint32_t spt_delay, bool ecmp) {
 
     NS_LOG_FUNCTION("Configuring BIRD daemons");
     Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable>();
     rand->SetAttribute("Min", DoubleValue(0.0));
     rand->SetAttribute("Max", DoubleValue(10.0));
+
+    uint64_t lo_counter_low = 1,
+	     lo_counter_high = 0;
 
     // Here, each node's ifaces are configured
     // We need to generate the bird config
@@ -282,7 +285,11 @@ void TopoHelper::ConfigureBird(uint32_t spt_delay) {
 	ofstream devnull(dev_dir + "/null");
 	devnull.close();
 
-	string lo_addr = "10.0.1." + to_string(node_id+1);
+	if (lo_counter_low >= 250) {
+		lo_counter_high++;
+		lo_counter_low = 1;
+	}
+	string lo_addr = "10.1." + to_string(lo_counter_high) + "." + to_string(lo_counter_low++);
 
 	// OSPF config
 	
@@ -306,7 +313,8 @@ void TopoHelper::ConfigureBird(uint32_t spt_delay) {
 	map<tuple<uint32_t, uint32_t>, uint32_t>::iterator metric_data;
 	uint32_t metric;
 	//config << "protocol ospf v2 {\n\ttick 50000;\n\tarea 0 {" <<endl;
-	config << "protocol ospf v2 {\n\tecmp yes;\n\ttick " << spt_delay << ";\n\tarea 0 {" <<endl;
+	config << "protocol ospf v2 {\n\tecmp " << ecmp ? "yes" : "no";
+	config << ";\n\ttick " << spt_delay << ";\n\tarea 0 {" <<endl;
 	for (uint32_t i=0; i<n_ifaces; i++) {
 	    metric_data = metrics.find(make_tuple(node_id, i));
 	    // 0 will cause invalid BIRD config and segfault during NS3 run
