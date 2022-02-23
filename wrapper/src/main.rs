@@ -28,12 +28,17 @@ fn run_ns3(opts: Cli, pwd: String) {
         Some(value) => value,
         None => false
     };
+    let v6 = match opts.v6 {
+        Some(value) => value,
+        None => false
+    };
     let mut cli: String = format!(
-        "--ntf={ntf} --check=true --runtime={runtime} --spt_delay={spt} --udp={udp} --ecmp={ecmp}", 
+        "--ntf={ntf} --check=true --runtime={runtime} --spt_delay={spt} --udp={udp} --ecmp={ecmp} --v6={v6}", 
         ntf=opts.ntf,
         runtime=opts.runtime,
         spt=opts.spt,
         udp=udp,
+        v6=v6,
         ecmp=match opts.ecmp {
             Some(value) => value,
             None => true
@@ -154,7 +159,9 @@ struct Cli {
     #[structopt(short,long)]
     debug: bool,
     #[structopt(short,long)]
-    ecmp: Option<bool>
+    ecmp: Option<bool>,
+    #[structopt(short,long)]
+    v6: Option<bool>
 }
 
 fn main() {

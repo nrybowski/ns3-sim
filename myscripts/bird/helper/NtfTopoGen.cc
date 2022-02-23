@@ -27,11 +27,14 @@ void LinkFailure(Ptr<PointToPointNetDevice> src, Ptr<PointToPointNetDevice> dst)
     LinkFailure(src, dst, 0);
 }
 
-TopoHelper::TopoHelper(string ntf_file, bool check, uint32_t spt_delay, bool ecmp) {
+TopoHelper::TopoHelper(string ntf_file, bool check, uint32_t spt_delay, bool ecmp, bool v6) {
     four = 1;
     three = 0;
     this->ntf_file = ntf_file;
     this->check = check;
+    this->v6 = v6;
+    this->current_v6 = 2;
+    this->v6_base.assign("fc00");
 
     // unsecure if file do not exist ? TODO: refactor
     ntf = new NtfContent(ntf_file);
@@ -48,7 +51,7 @@ TopoHelper::TopoHelper(string ntf_file, bool check, uint32_t spt_delay, bool ecm
     // TODO: switch case on daemon kind
     // TODO add check var in args
     // Configure and schedule BIRD daemon on each topology's node.
-    ConfigureBird(spt_delay, ecmp);
+    //ConfigureBird(spt_delay, ecmp);
 
     NS_LOG_FUNCTION("Topology is ready to use");
 }
@@ -134,7 +137,6 @@ vector<pair<Ptr<PointToPointNetDevice>, Ptr<PointToPointNetDevice>>> TopoHelper:
 	//dce.ParseArguments("qdisc add dev sim"+to_string(dst_p2p->GetIfIndex())+" netem rate 0");
     	app = dce.Install (dst_nd->GetNode());
     	app.Start (MilliSeconds (callback_delay*1000+18));
-
     }
 
     return ret;
@@ -152,26 +154,35 @@ void TopoHelper::MakeLinkFail(uint32_t src_id, uint32_t dst_id, uint32_t delay_v
 }
 
 void TopoHelper::TopoGen(void) {
-
     NS_LOG_FUNCTION("Generating topology defined in <" + ntf_file + ">");
     NS_LOG_FUNCTION("Number of nodes <" + to_string(ntf->nNodes) + ">");
 
-    //if (check)
-	// Dump the mapping of node's names and node's ids
-	//ntf->dumpNodes(filename + ".map");
+    // create nodes and add them to the manager
+    this->nodes.Create(ntf->nNodes);
+    this->dceManager.Install (nodes);
+    this->stack.Install(nodes);
 
+    map<unsigned int, string> los;
 
-    nodes.Create(ntf->nNodes);
-    dceManager.Install (nodes);
-    //Ptr<Node> sink_node = nodes.Get(nodes.GetN()-1);
+    if (this->v6) {
+	for (auto node = nodes.Begin(); node != nodes.End(); node++) {
+	    string lo;
 
-    // Create the topology
+	    char tip1[20];
+	    sprintf(tip1, "%s:1:%x::/64", this->v6_base.c_str(), this->current_v6++);
+	    lo.assign((const char *) tip1);
+	    LinuxStackHelper::RunIp ((*node), Seconds (1), "a add " + lo  + " dev lo");
+	    LinuxStackHelper::RunIp ((*node), Seconds (1), "l set dev lo up");
+	    this->stack.SysctlSet (*node, ".net.ipv6.conf.all.forwarding", "1");
+	    los[(*node)->GetId()] = lo;
+	}
+    }
+
+    // Create the topology and count the number of created links 
     int count = 0;
     for (vector<Link>::iterator links = ntf->getLinks(); links != ntf->getLastLink(); links++) {
+	// current link
 	Link l = *links;
-	// From NTF parser to NS3
-	//int n1_id = ntf->getNodeId(l.origin),
-	//    n2_id = ntf->getNodeId(l.end);
 
 	// Get both ends of the link
 	Ptr<Node> n1 = nodes.Get(l.origin),
@@ -187,63 +198,55 @@ void TopoHelper::TopoGen(void) {
 	// Current iface_id is the last one added
 	uint32_t n1_iface_id = n1->GetNDevices()-1,
 		 n2_iface_id = n2->GetNDevices()-1;
+	//NS_LOG_FUNCTION(Ipv6Address(n1->GetDevice(n1_iface_id)->GetAddress()));
 
 	// Map link metrics such that `<node_id, iface_id> = metric` for BIRD config file
 	metrics.insert(pair<tuple<uint32_t, uint32_t>, uint32_t>(make_tuple(l.origin, n1_iface_id), l.f_metric));
 	metrics.insert(pair<tuple<uint32_t, uint32_t>, uint32_t>(make_tuple(l.end, n2_iface_id), l.r_metric));
+	
+	string ip1, ip2;
 
-	// Configure newly created ifaces
-	//string ip1 = ConfigureIface(n1, n1_iface_id),
-	//       ip2 = ConfigureIface(n2, n2_iface_id);
-	if (four >= 244) {
-	    four = 1;
-	    three += 1;
+	if (this->v6) {
+	    char tip1[20], tip2[20];
+	    sprintf(tip1, "%s:2:%x::/64", this->v6_base.c_str(), this->current_v6++);
+	    sprintf(tip2, "%s:2:%x::/64", this->v6_base.c_str(), this->current_v6++);
+	    ip1.assign((const char *) tip1);
+	    ip2.assign((const char *) tip2);
+	} else {
+	    // Configure newly created ifaces
+	    if (four >= 244) {
+		four = 1;
+		three += 1;
+	    }
+	    ip1 = "10.0." + to_string(three) + "." + to_string(four++) + "/32";
+	    if (four >= 244) {
+		four = 1;
+		three += 1;
+	    }
+	    ip2 = "10.0." + to_string(three) + "." + to_string(four++) + "/32";
 	}
-	string ip1 = "10.0." + to_string(three) + "." + to_string(four++) + "/32";
-	if (four >= 244) {
-	    four = 1;
-	    three += 1;
-	}
-	string ip2 = "10.0." + to_string(three) + "." + to_string(four++) + "/32";
 
 	LinuxStackHelper::RunIp (n1, Seconds (1), "a add " + ip1 + " peer " + ip2 + " dev sim" + to_string(n1_iface_id));
 	//LinuxStackHelper::RunIp (n1, Seconds (1), "a add " + ip1 + " dev sim" + to_string(n1_iface_id));
 	LinuxStackHelper::RunIp (n1, Seconds (1), "l set dev sim" + to_string(n1_iface_id) + " up");
+	LinuxStackHelper::RunIp (n1, Seconds (1), "-6 r add " + los[n2->GetId()] + " via " + ip1.substr(0, ip1.length() - 3) + " dev sim" + to_string(n1_iface_id));
+
 	LinuxStackHelper::RunIp (n2, Seconds (1), "a add " + ip2 + " peer " + ip1 + " dev sim" + to_string(n2_iface_id));
 	//LinuxStackHelper::RunIp (n2, Seconds (1), "a add " + ip2 + " dev sim" + to_string(n2_iface_id));
 	LinuxStackHelper::RunIp (n2, Seconds (1), "l set dev sim" + to_string(n2_iface_id) + " up");
+	LinuxStackHelper::RunIp (n2, Seconds (1), "-6 r add " + los[n1->GetId()] + " via " + ip2.substr(0, ip2.length() - 3) + " dev sim" + to_string(n2_iface_id));
+
 	NS_LOG_FUNCTION(l);
 	NS_LOG_FUNCTION(n1->GetId() << n2->GetId() << ip1 << ip2);
+
+
+
 	count++;
     }
 
-    /*for (auto &p : metrics) {
-	cout << get<0>(p.first) << " " << get<1>(p.first) << " " << p.second <<endl;
-    }*/
     NS_LOG_FUNCTION("count " << count);
     NS_LOG_FUNCTION("#metrics " << metrics.size());
 
-    /*Ptr<Node> node;
-    for (uint32_t i=0; i<nodes.GetN(); i++) {
-	node = nodes.Get(i);
-	p2p.SetDeviceAttribute ("DataRate", StringValue ("100Gbps"));
-	p2p.SetChannelAttribute ("Delay", StringValue("5ms"));
-	p2p.Install(node, sink_node);
-	uint32_t node_iface_id = node->GetNDevices()-1,
-		 sink_iface_id = sink_node->GetNDevices()-1;
-	LinuxStackHelper::RunIp (node, Seconds (1), "l set dev sim" + to_string(node_iface_id) + " up");
-	LinuxStackHelper::RunIp (node, Seconds (1), "a add dev sim" + to_string(node_iface_id) + " 10.0.0." + to_string(a++) + "/32");
-	LinuxStackHelper::RunIp (sink_node, Seconds (1), "l set dev sim" + to_string(sink_iface_id) + " up");
-	LinuxStackHelper::RunIp (sink_node, Seconds (1), "a add dev sim" + to_string(sink_iface_id) + " 10.0.0." + to_string(a++) + "/32");
-	
-	//LinuxStackHelper::RunIp (node, Seconds (1), "l add stub type dummy"); // not supported by NS3
-	//LinuxStackHelper::RunIp (node, Seconds (1), "l set dev stub up");
-	//string stub_ip = "10.0.0." + to_string(a++) + "/32";
-	//LinuxStackHelper::RunIp (node, Seconds (1), "a add dev stub " + stub_ip);*/
-	/*for (uint32_t j=0; j<100; j++) {
-		LinuxStackHelper::RunIp (node, Seconds (1), "r add 10." + to_string(i) +"."+to_string(j)+".0/24 via " + stub_ip);
-	}*/
-    //}
 }
 
 DceApplicationHelper *TopoHelper::GetDce(void) {

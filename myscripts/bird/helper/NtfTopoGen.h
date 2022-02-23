@@ -50,6 +50,9 @@ class TopoHelper {
 	bool check; /**< Indicate whether the generated topology must be verified. */
 	unsigned int four; /**< IP address counter. @see ConfigureIface. */
 	unsigned int three; /**< IP address counter. @see ConfigureIface. */
+	bool v6;
+	unsigned int current_v6;
+	string v6_base;
 
 	// Methods
 	string ConfigureIface(Ptr<Node> node, unsigned int id);
@@ -60,7 +63,7 @@ class TopoHelper {
 		uint32_t callback_delay, uint32_t callback_duration);
 
     public:
-	TopoHelper(string ntf_file, bool check, uint32_t spt_delay, bool ecmp);
+	TopoHelper(string ntf_file, bool check, uint32_t spt_delay, bool ecmp, bool v6);
 	~TopoHelper();
 	void MakeLinkFail(uint32_t src_id, uint32_t dst_id, uint32_t delay_value, uint32_t delay, uint32_t duration);
 	void MakeLinkFail(uint32_t src_id, uint32_t dst_id, uint32_t delay_value, uint32_t delay);
@@ -69,6 +72,7 @@ class TopoHelper {
 	NodeContainer *GetNodes(void);
 	ApplicationContainer *GetApp(void);
 	DceApplicationHelper *GetDce(void);
+	LinuxStackHelper stack;
 };
 
 #endif //NTF_TOPO_GEN_H

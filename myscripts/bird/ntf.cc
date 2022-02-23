@@ -8,6 +8,7 @@ bool pcap = false;
 uint32_t spt_delay = 100;
 bool udp = false;
 bool ecmp = true;
+bool v6 = false;
 
 int main (int argc, char *argv[]) {
     CommandLine cmd;
@@ -19,11 +20,12 @@ int main (int argc, char *argv[]) {
     cmd.AddValue ("spt_delay", "SPT computation delay [ms]", spt_delay);
     cmd.AddValue ("udp", "Use udp ping between nodes", udp);
     cmd.AddValue ("ecmp", "Enable ECMP", ecmp);
+    cmd.AddValue ("v6", "Enable IPv6 addressing", v6);
     cmd.Parse (argc, argv);
     spt_delay *= 1000;
 
     // generate network topology
-    TopoHelper topo(ntf, check, spt_delay, ecmp);
+    TopoHelper topo(ntf, check, spt_delay, ecmp, v6);
 
     // schedule failures if any
     if (strcmp(failures.c_str(), "") != 0)
@@ -87,9 +89,17 @@ int main (int argc, char *argv[]) {
 	dce->SetStackSize(1 << 20);
     	dce->SetBinary("ip");
     	dce->ResetArguments();
+	dce->ParseArguments("-6");
 	dce->ParseArguments("r");
     	app = dce->Install(nodes->Get(i));
     	app.Start(Seconds(60));
+	dce->SetBinary("ip");
+    	dce->ResetArguments();
+	dce->ParseArguments("-6");
+	dce->ParseArguments("a");
+    	app = dce->Install(nodes->Get(i));
+    	app.Start(Seconds(60));
+
     }
     
 	/*dce->SetStackSize(1 << 20);
