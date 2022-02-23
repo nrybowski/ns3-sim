@@ -208,8 +208,8 @@ void TopoHelper::TopoGen(void) {
 
 	if (this->v6) {
 	    char tip1[20], tip2[20];
-	    sprintf(tip1, "%s:2:%x::/64", this->v6_base.c_str(), this->current_v6++);
-	    sprintf(tip2, "%s:2:%x::/64", this->v6_base.c_str(), this->current_v6++);
+	    sprintf(tip1, "%s:2:%x::/128", this->v6_base.c_str(), this->current_v6++);
+	    sprintf(tip2, "%s:2:%x::/128", this->v6_base.c_str(), this->current_v6++);
 	    ip1.assign((const char *) tip1);
 	    ip2.assign((const char *) tip2);
 	} else {
@@ -229,12 +229,12 @@ void TopoHelper::TopoGen(void) {
 	LinuxStackHelper::RunIp (n1, Seconds (1), "a add " + ip1 + " peer " + ip2 + " dev sim" + to_string(n1_iface_id));
 	//LinuxStackHelper::RunIp (n1, Seconds (1), "a add " + ip1 + " dev sim" + to_string(n1_iface_id));
 	LinuxStackHelper::RunIp (n1, Seconds (1), "l set dev sim" + to_string(n1_iface_id) + " up");
-	LinuxStackHelper::RunIp (n1, Seconds (1), "-6 r add " + los[n2->GetId()] + " via " + ip1.substr(0, ip1.length() - 3) + " dev sim" + to_string(n1_iface_id));
+	LinuxStackHelper::RunIp (n1, Seconds (1.5), "-6 r add " + los[n2->GetId()]  + " via " + ip2.substr(0, ip2.length() - 4)+ " dev sim" + to_string(n1_iface_id) );
 
 	LinuxStackHelper::RunIp (n2, Seconds (1), "a add " + ip2 + " peer " + ip1 + " dev sim" + to_string(n2_iface_id));
 	//LinuxStackHelper::RunIp (n2, Seconds (1), "a add " + ip2 + " dev sim" + to_string(n2_iface_id));
 	LinuxStackHelper::RunIp (n2, Seconds (1), "l set dev sim" + to_string(n2_iface_id) + " up");
-	LinuxStackHelper::RunIp (n2, Seconds (1), "-6 r add " + los[n1->GetId()] + " via " + ip2.substr(0, ip2.length() - 3) + " dev sim" + to_string(n2_iface_id));
+	LinuxStackHelper::RunIp (n2, Seconds (1.5), "-6 r add " + los[n1->GetId()]  + " via " + ip1.substr(0, ip1.length() - 4)+ " dev sim" + to_string(n2_iface_id) );
 
 	NS_LOG_FUNCTION(l);
 	NS_LOG_FUNCTION(n1->GetId() << n2->GetId() << ip1 << ip2);
