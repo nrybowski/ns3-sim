@@ -49,5 +49,7 @@ RUN git apply --whitespace=warn < bakeconf.xml.patch
 
 WORKDIR /home/ns3dce/dce-linux-dev
 RUN ./bake/bake.py configure -m -e dce-linux-dev
-RUN ./bake/bake.py download
+RUN sed -i -e "s/git:\/\//https:\/\//g" bake/bakeconf.xml
+RUN sed -i -e "s/github.com\/libos-nuse/github.com\/nrybowski/g" bake/bakeconf.xml
+RUN ./bake/bake.py download -vvv
 RUN ./bake/bake.py build -j $(nproc) -vvv

@@ -4,8 +4,9 @@ info () {
     echo -e "[INFO][container] $*"
 }
 
-cp myscripts/bird/*.py /dev/shm
-cp /data/inputs/* /dev/shm
+sudo cp myscripts/bird/*.py /dev/shm
+sudo cp /data/inputs/* /dev/shm
+sudo chown -R ns3dce:ns3dce /dev/shm /data
 
 info "Re-compiling bird."
 CURDIR="${PWD}"
