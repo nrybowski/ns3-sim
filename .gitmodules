@@ -1,6 +1,6 @@
 [submodule "bird"]
 	path = bird
-	url = ./bird/
+	url = https://gitlab.nic.cz/labs/bird.git
 [submodule "netanim"]
 	path = netanim
 	url = ./netanim/
