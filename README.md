@@ -2,7 +2,7 @@
 
 This repository contains the artefacts of the WNS3'22 paper ["Evaluating OSPF Convergence with ns-3 DCE"](https://doi.org/10.1145/3532577.3532597).
 
-The [preprint is available here](http://hdl.handle.net/2078.1/260468).
+The [postprint and the paper presentation materials are available here](http://hdl.handle.net/2078.1/260468).
 
 ## About
 
