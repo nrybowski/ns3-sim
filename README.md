@@ -1,8 +1,8 @@
 # ns-3 sim
 
-This repository contains the artefacts of the WNS3'22 paper ["Evaluating OSPF Convergence with ns-3 DCE"](https://doi.org/10.1145/3532577.3532597).
+This repository contains the artefacts of the WNS3'22 paper ["Evaluating OSPF Convergence with ns-3 DCE"](https://dl.acm.org/doi/10.1145/3532577.3532597?cid=99659853383).
 
-The [postprint and the paper presentation materials are available here](http://hdl.handle.net/2078.1/260468).
+The [paper presentation materials are available here](http://hdl.handle.net/2078.1/260468).
 
 ## About
 
